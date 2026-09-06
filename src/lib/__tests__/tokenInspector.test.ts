@@ -66,15 +66,19 @@ describe('resolveVariantRoles', () => {
     ])
   })
 
-  it('a Soft Error badge names the critical tint and content ink', () => {
+  it('a Soft Error badge names the critical tint, content ink, and solid dot', () => {
     const paints = [
       { css: 'rgba(185, 65, 54, 0.11)', where: 'fill' as const },
       { css: '#9f2b20', where: 'ink' as const },
+      { css: '#b94136', where: 'fill' as const },
     ]
-    expect(resolveVariantRoles(t, 'Badge', { Style: 'Soft', Color: 'Error' }, paints)?.map((r) => r.id)).toEqual([
+    const roles = resolveVariantRoles(t, 'Badge', { Style: 'Soft', Color: 'Error' }, paints)
+    expect(roles?.map((r) => r.id)).toEqual([
       'status.critical.surface',
       'status.critical.content',
+      'status.critical.surface-solid',
     ])
+    expect(roles?.find((r) => r.id === 'status.critical.surface-solid')?.css).toBe('#b94136')
   })
 
   it('a Success toast names the inverse chip and status solid dot', () => {

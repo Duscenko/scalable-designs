@@ -90,6 +90,11 @@ export const TokenSearchField = forwardRef<TokenSearchHandle, TokenSearchFieldPr
     const [panelOpen, setPanelOpen] = useState(false)
     const [activeIndex, setActiveIndex] = useState(-1)
     const [panelRect, setPanelRect] = useState<{ top: number; left: number; width: number } | null>(null)
+    // The width mask MUST clip while the chip is growing/shrinking or the
+    // 14rem field spills. Once settled, clip OFF — `ring-offset-2` paints
+    // 4px outside the label and `overflow-hidden` was slicing that halo
+    // (top/right especially, against the tab-bar edge).
+    const [clipping, setClipping] = useState(false)
     const reduceMotion = useReducedMotion()
 
     const { results, total } = useMemo(
@@ -361,10 +366,12 @@ export const TokenSearchField = forwardRef<TokenSearchHandle, TokenSearchFieldPr
     return (
       <div ref={rootRef} className="relative flex-shrink-0">
         <motion.div
-          className="overflow-hidden"
+          className={clipping ? 'overflow-hidden' : ''}
           initial={false}
           animate={{ width: open ? SEARCH_W : ICON_W }}
           transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.33, 1, 0.68, 1] }}
+          onAnimationStart={() => setClipping(true)}
+          onAnimationComplete={() => setClipping(false)}
         >
           {field}
         </motion.div>

@@ -356,7 +356,6 @@ const es: Record<string, string> = {
   // Changelog, and the shared chrome of the foundation and component articles.
   // Terminology follows what this file already established — a colour "ramp" is
   // una escala / une gamme, and the reader is addressed as usted / vous.
-  'All rights reserved.': 'Todos los derechos reservados.',
   'Use it': 'Cómo usarlo',
   'The same element in the three places this system ships to. Every value here is read from your own tokens by the same resolvers the export uses, so what you copy is what lands.': 'El mismo elemento en los tres destinos a los que llega este sistema. Cada valor se lee de sus propios tokens con los mismos resolutores que usa la exportación, así que lo que copia es lo que se entrega.',
   'Needs the system published (Sync) and the MCP server connected — see Docs → Use in code.': 'Requiere el sistema publicado (Sync) y el servidor MCP conectado; consulte Documentación → Usar en código.',
@@ -875,7 +874,6 @@ const fr: Record<string, string> = {
   // Changelog, and the shared chrome of the foundation and component articles.
   // Terminology follows what this file already established — a colour "ramp" is
   // una escala / une gamme, and the reader is addressed as usted / vous.
-  'All rights reserved.': 'Tous droits réservés.',
   'Use it': 'L’utiliser',
   'The same element in the three places this system ships to. Every value here is read from your own tokens by the same resolvers the export uses, so what you copy is what lands.': 'Le même élément dans les trois destinations vers lesquelles ce système est livré. Chaque valeur est lue depuis vos propres tokens par les mêmes résolveurs que ceux de l’export : ce que vous copiez est donc exactement ce qui sera livré.',
   'Needs the system published (Sync) and the MCP server connected — see Docs → Use in code.': 'Nécessite que le système soit publié (Sync) et que le serveur MCP soit connecté — voir Documentation → Utiliser dans le code.',

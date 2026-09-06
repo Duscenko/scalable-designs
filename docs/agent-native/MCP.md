@@ -24,14 +24,15 @@ Read-only Model Context Protocol endpoint. Does **not** replace `/api/tokens`.
 {
   "mcpServers": {
     "escala-tokens": {
-      "url": "https://www.escalatokens.com/api/mcp"
+      "url": "https://escalatokens.com/api/mcp",
+      "type": "http"
     }
   }
 }
 ```
 
-Public, no auth (same as `/api/tokens`). CORS `*`.
+Public, no auth (same as `/api/tokens`). CORS `*`. Apex host only — `www.escalatokens.com` fails TLS (certificate SAN is `DNS:escalatokens.com`).
 
-Human install recipe: `npx @escala/cli skill --from <slug>` and `npx @escala/cli mcp init` (Export wizard step 3 and Docs → Use with AI). Unzip + pasted JSON remain as fallbacks. Do not invent a second MCP URL.
+Human install (About / Docs → Use in code / Export wizard): paste the JSON above into `.cursor/mcp.json`, or run `claude mcp add --transport http --scope project escala-tokens https://escalatokens.com/api/mcp`. VS Code uses `.vscode/mcp.json` with key `servers`, not `mcpServers`. `npx @escala/cli mcp init` / `skill --from <slug>` remain as an offline fallback once the package is on npm. Do not invent a second MCP URL. Token tools (`get_tokens`, `resolve_token`, `list_icons`) require `project`.
 
 Implementation: `src/lib/agentAccess/` (pure) + `api/mcp.ts` (Blob read). `src/lib/agentInstall.ts` is the snippet/command builder. `src/lib/cliInstall.ts` is the installer.

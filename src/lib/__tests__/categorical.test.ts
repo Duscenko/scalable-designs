@@ -10,6 +10,7 @@ import { buildCategoricalSymbolicTokens, generateTokenJSON } from '../tokenGener
 import { buildWizardExport } from '../exportWizard'
 import { unzipStore } from '../zipStore'
 import { iconAiContext } from '../iconLibraries'
+import { wcagRatio } from '../color/apca'
 
 // The default AI icon source's repo — asserted dynamically so the Skill/README
 // icon block can change default without editing string literals here.
@@ -174,7 +175,7 @@ describe('the categorical catalogue is complete', () => {
   it('uses the layout-tuned dark steps as catalogue defaults', () => {
     const label = (group: string, key: string) =>
       view.categories.find((c) => c.key === group)?.tokens.find((t) => t.key === key)?.modes.dark.label
-    expect(label('surface', 'inverse')).toBe('neutral.4')
+    expect(label('surface', 'inverse')).toBe('neutral-dark.11')
     // border.subtle is on the fixed alpha ladder now (audit F4) — white-a in
     // dark, black-a in light. The dark-step assertions for it live in the
     // "decorative ladder" test above.
@@ -190,6 +191,22 @@ describe('the categorical catalogue is complete', () => {
     // measured), which is the pastel defect `brandSolidPair` exists to stop —
     // tone 12 of a DARK ramp is not "still coloured", it is almost white.
     expect(label('status', 'critical.surface-solid')).toBe('error.8')
+  })
+
+  it('the inverse snackbar pair stays readable when a theme remaps gray', () => {
+    // Nature-style: palette.gray IS the dark twin, so `{neutral.N}` and
+    // `{neutral-dark.N}` resolve to the same ramp. The old `{neutral.4}` fill
+    // collapsed onto the page (~1.2:1). `{neutral-dark.11}` is the muted
+    // light chip of that same ramp.
+    const themed = buildArchitectureView('categorical', {
+      themes: {}, themeKinds: { light: 'light', dark: 'dark' },
+      themePalettes: { dark: { gray: system.scales.grayDark ?? system.scales.gray } },
+      scales: system.scales, accent: system.accent,
+      pageBackground: system.lightBg, darkBackground: system.darkBg,
+    } as never, system.errorSeed)!
+    const css = (group: string, key: string) =>
+      themed.categories.find((c) => c.key === group)?.tokens.find((t) => t.key === key)?.modes.dark.css
+    expect(wcagRatio(css('content', 'inverse')!, css('surface', 'inverse')!)).toBeGreaterThanOrEqual(4.5)
   })
 
   // `border.default`/`border.strong` split by JOB (control boundary vs.

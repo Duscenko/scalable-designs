@@ -81,7 +81,7 @@ function guideMarkdown(key: string, project: string, origin: string, slug: strin
       '',
       `Or: \`${cliMcpInitCommand('cursor', origin)}\``,
       '',
-      `Tools that read the published system take an optional \`project\` argument. This system's slug is \`${slug}\` — the same slug Figma Sync uses.`,
+      `Tools that read the published system (\`get_tokens\`, \`resolve_token\`, \`list_icons\`) require \`project\`. This system's slug is \`${slug}\` — the same slug Figma Sync uses.`,
       '',
       'Also install the offline package, so the agent knows your token NAMES with no network — which the connection alone cannot answer, since an agent with only a connection does not know what to ask for:',
       '',

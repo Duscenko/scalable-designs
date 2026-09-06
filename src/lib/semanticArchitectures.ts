@@ -666,11 +666,15 @@ const CATEGORICAL_ROLES: { group: string; key: string; light: string; dark: stri
   // tint over any other surface. Everything reading text on it composites
   // first — see `audit.ts`'s `backdrop`.
   { group: 'surface', key: 'selected', light: '{accent-a.3}', dark: '{accent-a.3}' },
-  // Inverse surface is dark-on-light and light-on-dark by definition — but
-  // dark does NOT take the ramp's lightest step. `{neutral-dark.12}` flashes
-  // near-white on a dark page; `{neutral.4}` (the light ramp's quiet gray) is
-  // the muted inverse chip that actually reads as "inverted" in a layout.
-  { group: 'surface', key: 'inverse', light: '{neutral.12}', dark: '{neutral.4}' },
+  // Inverse surface is dark-on-light and light-on-dark by definition.
+  // Dark used `{neutral.4}` to dodge `{neutral-dark.12}`'s near-white flash —
+  // that only worked while `neutral` still meant the LIGHT ramp. On a themed
+  // system `scaleLookup` remaps both `neutral` and `neutral-dark` onto the
+  // same appearance-correct gray, so `{neutral.4}` became dark-ramp tone 4
+  // (a hair off the page) and `content.inverse` (`{neutral-dark.1}`, the
+  // page) sat on it at ~1.2:1. `{neutral-dark.11}` is the muted light chip
+  // of THIS page — AA + Lc 75 against tone 1, without the tone-12 flash.
+  { group: 'surface', key: 'inverse', light: '{neutral.12}', dark: '{neutral-dark.11}' },
   // Scrim — stays dark in BOTH appearances (it dims, it doesn't invert).
   // `{black-a.8}` (60% — Radix blackA8) is a genuine translucent overlay: the
   // pre-alpha-primitives value here was `{neutral.12}` / `{neutral-dark.1}`,
@@ -985,7 +989,7 @@ export const CATEGORICAL_ROLE_COMMENTS: Record<string, string> = {
   'surface.layer-2': '[ROLE: Elevated Background] Elevation level 2. Popovers, dropdowns, modals. Pair with box-shadow in CSS — the color step alone does not convey floating.',
   'surface.input': "[ROLE: Form Background] Background for interactive data-entry fields. Ensures content.primary typed by the user stays legible. Same tone as surface.page by design — named separately so forms have their own token.",
   'surface.selected': '[ROLE: Active State Background] Subtle fill for mutual selection (e.g. a selected table row). Must guarantee 4.5:1 against content.primary on top.',
-  'surface.inverse': "[ROLE: Inverted Background] High-contrast background for tooltips and snackbars. Always pair with content.inverse. Light {neutral.12}; dark {neutral.4} — a muted inverse chip, not the dark ramp's near-white step.",
+  'surface.inverse': "[ROLE: Inverted Background] High-contrast background for tooltips and snackbars. Always pair with content.inverse. Light {neutral.12}; dark {neutral-dark.11} — a muted inverse chip, not the dark ramp's near-white step.",
   'surface.overlay': '[ROLE: Scrim] Semi-transparent layer over surface.page to focus attention on modals (layer-2 surfaces). Ships at 60% black alpha (`{black-a.8}`), same in both themes.',
   'surface.accent': '[ROLE: Accent Wash] Ambient brand-tinted background — a section that leans brand without being an interactive fill.',
   'content.primary': '[ROLE: High Contrast Text] Main body and headings. STRICT: must pass WCAG AA (4.5:1) against surface.page and surface.layer-1.',

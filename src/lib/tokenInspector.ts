@@ -396,9 +396,14 @@ export function resolveVariantRoles(
       }
       const sev = STATUS_SEV[intent]
       if (sev) {
+        // Soft paints THREE colours: the wash, the label, and the leading
+        // status DOT (`statusColor` → `*.surface-solid`). Dropping the solid
+        // left the inspector naming only the tint / content pair, so pointing
+        // at Critical showed a coral swatch that was never the brown-red dot.
         const roles = [
           roleAt(arch, paints, `status.${sev}.surface`, 'fill'),
           roleAt(arch, paints, `status.${sev}.content`, 'ink'),
+          roleAt(arch, paints, `status.${sev}.surface-solid`, 'fill'),
         ].filter((r): r is InspectedRole => !!r)
         return roles.length ? roles : null
       }

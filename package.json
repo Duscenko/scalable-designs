@@ -2,6 +2,8 @@
   "name": "escala-tokens",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
+  "author": "Cesar Durango (Duscenko)",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,7 +23,8 @@
     "color:report": "tsx scripts/color-report.ts",
     "gen:radix-reference": "tsx scripts/gen-radix-reference.ts",
     "gen:tailwind-reference": "tsx scripts/gen-tailwind-reference.ts",
-    "gen:component-color-fields": "tsx scripts/gen-component-color-fields.ts"
+    "gen:component-color-fields": "tsx scripts/gen-component-color-fields.ts",
+    "gen:chrome-theme": "tsx scripts/gen-chrome-theme.ts"
   },
   "dependencies": {
     "@radix-ui/react-icons": "^1.3.2",

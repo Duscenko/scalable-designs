@@ -29,7 +29,7 @@ Every value resolves down a chain. Nothing holds a copy of anything above it, so
 2. **Semantics** — named roles that point *at* a primitive tone, per theme. A theme stores which family fills each slot, never a hex of its own. `text-primary → neutral-12`
 3. **Components** — created by the plugin in Figma: one variable per component property, aliasing its semantic role. `button/bg → action/primary → accent-9`
 
-The semantic layer can be projected as **Flat**, **Categorical**, **Vibrancy** (Apple HIG alpha) or **Tonal** (Material 3). Contrast for text tones is solved against the page, targeting WCAG AA.
+The semantic layer is projected as **Categorical** — a grouped DTCG tree. Contrast for text tones is solved against the page, targeting WCAG AA.
 
 A sample of the *generated* README (an old default named DS.by.MD) lives in [`examples/generated-system/`](examples/generated-system/README.md).
 
@@ -66,7 +66,7 @@ The installer lives in this repo as `@escala/cli` (`npm run cli`). It is not on 
 
 ```bash
 npm run cli -- skill --from <published-slug> --client cursor
-npm run cli -- mcp init --client cursor --url https://www.escalatokens.com/api/mcp
+npm run cli -- mcp init --client cursor --url https://escalatokens.com/api/mcp
 ```
 
 The system must already be published (Escala → Figma → Sync). Unzip the AI assistant export by hand if it is not published yet.
@@ -88,8 +88,8 @@ This is a Vite app hosted on Vercel. Publish and MCP need [Vercel Blob](https://
 
 ## License and credits
 
-[MIT](LICENSE) © 2026 Duscenko. Third-party notices: [NOTICE](NOTICE). Security model (no accounts, claim-on-first-publish): [SECURITY.md](SECURITY.md).
+[MIT](LICENSE) © 2026 Cesar Durango (Duscenko). Third-party notices: [NOTICE](NOTICE). Security model (no accounts, claim-on-first-publish): [SECURITY.md](SECURITY.md).
 
-Standards referenced for defaults: Radix Colors (12-step scales), W3C Design Tokens, WCAG, Apple HIG / Material 3 for the alternative semantic architectures. Escala is not affiliated with those projects. Figma is a trademark of Figma, Inc.
+Standards referenced for defaults: Radix Colors (12-step scales), W3C Design Tokens, WCAG. Escala is not affiliated with those projects. Figma is a trademark of Figma, Inc.
 
-Built by [Cesar Duscenko](https://duscenko.com).
+Built by [Cesar Durango](https://duscenko.com) (Duscenko).

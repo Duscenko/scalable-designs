@@ -1,5 +1,5 @@
 Escala Tokens
-Copyright (c) 2026 Duscenko
+Copyright (c) 2026 Cesar Durango (Duscenko)
 
 This product is licensed under the MIT License (see LICENSE). It includes
 third-party material whose own notices are reproduced below.
@@ -39,16 +39,6 @@ src/lib/color/tailwindReference.ts
   numbers to the digit, not values recomputed here.
 
 --------------------------------------------------------------------------------
-src/lib/color/carbonReference.ts
-
-  IBM Carbon Design System color and theme tokens.
-  Source: https://github.com/carbon-design-system/carbon
-
-  Copyright IBM Corp. 2018, 2026
-  Licensed under the Apache License, Version 2.0.
-  http://www.apache.org/licenses/LICENSE-2.0
-
---------------------------------------------------------------------------------
 src/lib/color/apca.ts
 
   Implements the APCA (Advanced Perceptual Contrast Algorithm) W3 constant set
@@ -69,7 +59,6 @@ react-dom, framer-motion, zustand, clsx, tailwind-merge,
 class-variance-authority, @vercel/blob, @tailwindcss/vite) are MIT. The
 complete dependency tree is in package-lock.json.
 
-  @material/material-color-utilities  — Apache-2.0, Copyright Google LLC
   chroma-js                           — BSD-3-Clause AND Apache-2.0
   @radix-ui/react-slot                — MIT, Copyright (c) 2022 WorkOS
   tailwindcss                         — MIT, Copyright (c) Tailwind Labs, Inc.

@@ -60,10 +60,16 @@ describe('agentInstall recipes', () => {
     expect(mcpEndpoint('https://escalatokens.com/')).toBe('https://escalatokens.com/api/mcp')
   })
 
+  it('rewrites www to the apex — that host fails TLS on every MCP client', () => {
+    expect(mcpEndpoint('https://www.escalatokens.com')).toBe('https://escalatokens.com/api/mcp')
+    expect(mcpEndpoint('https://www.escalatokens.com/')).toBe('https://escalatokens.com/api/mcp')
+    expect(originFromMcpUrl('https://www.escalatokens.com/api/mcp')).toBe('https://escalatokens.com')
+  })
+
   it('builds Cursor mcp.json with the server name the endpoint advertises', () => {
     const json = JSON.parse(mcpCursorConfig('https://escalatokens.com'))
     expect(json).toEqual({
-      mcpServers: { 'escala-tokens': { url: 'https://escalatokens.com/api/mcp' } },
+      mcpServers: { 'escala-tokens': { url: 'https://escalatokens.com/api/mcp', type: 'http' } },
     })
   })
 
@@ -79,8 +85,14 @@ describe('agentInstall recipes', () => {
     const origin = 'https://escalatokens.com'
     const json = JSON.parse(mcpCursorConfig(origin))
     expect(mcpClaudeAddCommand(origin)).toBe(
-      `claude mcp add --transport http ${MCP_SERVER_NAME} ${json.mcpServers[MCP_SERVER_NAME].url}`,
+      `claude mcp add --transport http --scope project ${MCP_SERVER_NAME} ${json.mcpServers[MCP_SERVER_NAME].url}`,
     )
+    // Claude's project file is the same payload Cursor writes — only the path differs.
+    expect(mcpConfigPath('claude')).toBe('.mcp.json')
+    expect(JSON.parse(mcpCursorConfig(origin)).mcpServers[MCP_SERVER_NAME]).toEqual({
+      url: 'https://escalatokens.com/api/mcp',
+      type: 'http',
+    })
   })
 
   it('installs the skill under the zip folder name', () => {
@@ -121,13 +133,28 @@ describe('agentInstall recipes', () => {
     const prompt = agentSetupPrompt('https://escalatokens.com', 'hola')
     expect(prompt).toContain('https://escalatokens.com/api/mcp')
     expect(prompt).toContain('get_tokens with project "hola"')
-    expect(prompt).toContain('resolve_token')
+    expect(prompt).toContain('resolve_token with the same project "hola"')
+    expect(prompt).toContain('Never use www.escalatokens.com')
+    expect(prompt).not.toContain('www.escalatokens.com/api')
     const claude = claudeChatUrl(prompt)
     expect(claude.startsWith('https://claude.ai/new?q=')).toBe(true)
     expect(new URL(claude).searchParams.get('q')).toBe(prompt)
     const cursor = cursorPromptUrl(prompt)
     expect(cursor.startsWith('https://cursor.com/link/prompt?')).toBe(true)
     expect(new URL(cursor).searchParams.get('text')).toBe(prompt)
+  })
+
+  it('PROMPT names the exact add path for the selected client', () => {
+    const claude = agentSetupPrompt('https://escalatokens.com', 'hola', 'claude')
+    expect(claude).toContain(mcpClaudeAddCommand('https://escalatokens.com'))
+    expect(claude).toContain('resolve_token with the same project "hola"')
+    const cursor = agentSetupPrompt('https://www.escalatokens.com', 'hola', 'cursor')
+    expect(cursor).toContain('.cursor/mcp.json')
+    expect(cursor).toContain('https://escalatokens.com/api/mcp')
+    expect(cursor).not.toContain('www.escalatokens.com/api')
+    const vscode = agentSetupPrompt('https://escalatokens.com', 'hola', 'vscode')
+    expect(vscode).toContain('"servers"')
+    expect(vscode).toContain('.vscode/mcp.json')
   })
 
   it('Figma Agent lead is Make + skill, never a live MCP add', () => {
@@ -174,7 +201,7 @@ describe('cliInstall', () => {
     )
     expect(merged.mcpServers).toEqual({
       other: { url: 'https://example' },
-      [MCP_SERVER_NAME]: { url: 'https://escalatokens.com/api/mcp' },
+      [MCP_SERVER_NAME]: { url: 'https://escalatokens.com/api/mcp', type: 'http' },
     })
     const vscode = mergeMcpConfig({}, 'vscode', 'https://preview.example')
     expect(vscode.servers).toEqual({

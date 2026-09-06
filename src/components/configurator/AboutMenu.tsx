@@ -52,9 +52,9 @@ export const CONTACT = {
 
 const COPYRIGHT_YEAR = 2026
 
-/** Shown in the footer bar AND at the foot of this drawer, so the one legal
- *  line can't drift between them. */
-export const COPYRIGHT_LINE = `© ${COPYRIGHT_YEAR} ${CONTACT.site}`
+/** Shown in the footer bar AND at the foot of About, so the one legal
+ *  line can't drift. Matches LICENSE: Cesar Durango (Duscenko). */
+export const COPYRIGHT_LINE = `© ${COPYRIGHT_YEAR} Cesar Durango (Duscenko)`
 
 /** ease-out-quint — the SAME curve `AboutAccordion`'s own height animation
  *  already uses below. One easing across this file, not a bouncier one for
@@ -833,9 +833,8 @@ export function AboutHome({
             per-paragraph, not full-bleed walls of text, so the wider
             measure reads fine in practice.
             No footer here: Configurator.tsx's own Row 3 (the fixed hairline
-            under every tab) already prints {COPYRIGHT_LINE} · Built by Cesar
-            Durango — repeating it here was the same line twice on screen at
-            once. */}
+            under every tab) already prints {COPYRIGHT_LINE} — repeating it
+            here was the same line twice on screen at once. */}
         <div className="px-6 pb-8">
           <AboutAccordion section={section} onSectionChange={setSection} bleed />
           <AboutContact pad="px-0" card />
@@ -904,7 +903,7 @@ export function AboutScaffold({
 
       <footer className="mt-auto px-5 py-4 border-t border-line">
         <p className="text-caption text-fg-faint">
-          {COPYRIGHT_LINE} · {t('All rights reserved.')} {t('Figma is a trademark of Figma, Inc.')}
+          {COPYRIGHT_LINE} · {t('Figma is a trademark of Figma, Inc.')}
         </p>
       </footer>
     </div>

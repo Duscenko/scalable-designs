@@ -1,0 +1,31 @@
+/**
+ * GENERATED FILE — do not edit by hand.
+ * Regenerate with `npx tsx scripts/gen-chrome-theme.ts`.
+ *
+ * Chrome page / surface / elevated / hairline / primary+muted ink, resolved
+ * from the Categorical projection of the default system (accent #2970ff,
+ * radix). `--fg-faint` is not generated: it stays hand-tuned in index.css
+ * as decorative metadata ink. See `src/lib/chromeTheme.ts`.
+ */
+
+:root, .light {
+  --app: #fdfdff; /* surface.page ← neutral.1 */
+  --surface: #f1f1f2; /* surface.layer-1 ← neutral.2 */
+  --elevated: #e5e6e8; /* surface.layer-2 ← neutral.3 */
+  --fg: #33353a; /* content.primary ← neutral.12 */
+  --fg-muted: #686c76; /* content.secondary ← neutral.11 */
+  --line-alpha: #0000000d; /* tracks --line */
+  --line: #0000000d; /* border.subtle ← black-a.1 */
+  --line-strong: #0000001a; /* border.default ← black-a.2 */
+}
+
+.dark {
+  --app: #0e0f13; /* surface.page ← neutral-dark.1 */
+  --surface: #151515; /* surface.layer-1 ← neutral-dark.2 */
+  --elevated: #1b1b1c; /* surface.layer-2 ← neutral-dark.3 */
+  --fg: #e3e4e7; /* content.primary ← neutral-dark.12 */
+  --fg-muted: #c9ccd1; /* content.secondary ← neutral-dark.11 */
+  --line-alpha: #ffffff0d; /* tracks --line */
+  --line: #ffffff0d; /* border.subtle ← white-a.1 */
+  --line-strong: #ffffff1a; /* border.default ← white-a.2 */
+}

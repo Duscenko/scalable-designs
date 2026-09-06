@@ -27,15 +27,33 @@ export const CLI_PACKAGE = '@escala/cli'
  */
 export const DEFAULT_PUBLISH_ORIGIN = 'https://escalatokens.com'
 
+/**
+ * Host that MCP clients may actually open. `www.escalatokens.com` fails TLS
+ * (the certificate SAN is only `DNS:escalatokens.com`) — every Cursor / Claude
+ * / VS Code client verifies, so a generated config pointing at `www` dies at
+ * the handshake. Preview hosts and the apex pass through unchanged.
+ */
+export function mcpOrigin(origin: string): string {
+  const raw = (origin || '').trim()
+  if (!raw) return DEFAULT_PUBLISH_ORIGIN
+  const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+  try {
+    const u = new URL(withProto)
+    if (u.hostname === 'www.escalatokens.com') return DEFAULT_PUBLISH_ORIGIN
+    return `${u.protocol}//${u.host}`
+  } catch {
+    return DEFAULT_PUBLISH_ORIGIN
+  }
+}
+
 export function mcpEndpoint(origin: string): string {
-  const base = origin.replace(/\/$/, '') || DEFAULT_PUBLISH_ORIGIN
-  return `${base}/api/mcp`
+  return `${mcpOrigin(origin)}/api/mcp`
 }
 
 /** Cursor / Claude Desktop project file: `.cursor/mcp.json`. */
 export function mcpCursorConfig(origin: string): string {
   return JSON.stringify(
-    { mcpServers: { [MCP_SERVER_NAME]: { url: mcpEndpoint(origin) } } },
+    { mcpServers: { [MCP_SERVER_NAME]: { url: mcpEndpoint(origin), type: 'http' } } },
     null,
     2,
   )
@@ -50,9 +68,10 @@ export function mcpVscodeConfig(origin: string): string {
   )
 }
 
-/** Anthropic's CLI — not an Escala installer. */
+/** Anthropic's CLI — not an Escala installer.
+ *  `--scope project` writes `.mcp.json` in the product repo (flags before name). */
 export function mcpClaudeAddCommand(origin: string): string {
-  return `claude mcp add --transport http ${MCP_SERVER_NAME} ${mcpEndpoint(origin)}`
+  return `claude mcp add --transport http --scope project ${MCP_SERVER_NAME} ${mcpEndpoint(origin)}`
 }
 
 export function skillInstallPath(agent: SkillAgent, project: string): string {
@@ -91,25 +110,43 @@ export function cliMcpInitCommand(
  * The "paste this to your agent" alternative to the numbered steps — one
  * message that connects the server and then PROVES it connected.
  *
- * Every claim in it is checked against something real: the endpoint is
- * `mcpEndpoint`, the transport is what `/api/mcp` actually speaks (plain
- * streamable HTTP, no auth — do NOT add a sign-in line here), and the two tool
- * names are entries in `agentAccess/types.ts`. Step 3 exists because "did it
- * work" is otherwise unanswerable until the agent gets a token wrong: asking
- * for the role's resolved value makes a silent mis-connection visible
- * immediately.
+ * Every claim is checked against something real: the endpoint is `mcpEndpoint`
+ * (apex, never www), the transport is what `/api/mcp` actually speaks (plain
+ * streamable HTTP, no auth — do NOT add a sign-in line), and the tool names
+ * plus required `project` match `agentAccess/types.ts`. A vague "use whichever
+ * config my editor expects" let agents invent `www.` or the wrong JSON key
+ * (`mcpServers` vs `servers`) — so step 1 names the exact file or CLI command.
  */
 export function agentSetupPrompt(
   origin: string = DEFAULT_PUBLISH_ORIGIN,
   slug?: string,
+  client?: McpClient,
 ): string {
-  const withProject = slug ? ` with project "${slug}"` : ''
+  const url = mcpEndpoint(origin)
+  const project = slug?.trim() || 'YOUR_PUBLISHED_SLUG'
   return [
-    'Set up my Escala design system.',
-    `1. Add the MCP server ${mcpEndpoint(origin)}. It's streamable HTTP with no auth, so use whichever config my editor expects, and name it ${MCP_SERVER_NAME}.`,
-    `2. Call get_tokens${withProject} and tell me how many semantic roles the system ships.`,
-    '3. From now on resolve every colour, size and radius through resolve_token instead of writing a hex or a px value, and run check_contrast before you pair an ink with a fill.',
+    'Set up my Escala design system in this repo.',
+    `1. Add the MCP server named ${MCP_SERVER_NAME}. ${clientAddInstructions(client, origin, url)} The endpoint is streamable HTTP with no auth. Never use www.escalatokens.com — the certificate only covers the apex. Restart the editor after adding.`,
+    `2. Call get_tokens with project "${project}". If the tool says nothing is published, tell me to Sync from the configurator. Do not invent tokens.`,
+    `3. From now on every colour, size and radius goes through resolve_token with the same project "${project}" — never a hex or a px. resolve_token requires project. Then run check_contrast on the resolved hexes before pairing an ink with a fill.`,
   ].join('\n')
+}
+
+function clientAddInstructions(
+  client: McpClient | undefined,
+  origin: string,
+  url: string,
+): string {
+  if (client === 'claude') {
+    return `Run \`${mcpClaudeAddCommand(origin)}\`.`
+  }
+  if (client === 'vscode') {
+    return `Write \`.vscode/mcp.json\` — the key is "servers", not "mcpServers":\n${mcpVscodeConfig(origin)}`
+  }
+  if (client === 'cursor') {
+    return `Write \`.cursor/mcp.json\`:\n${mcpCursorConfig(origin)}`
+  }
+  return `Use the config this editor expects. Cursor: \`.cursor/mcp.json\` with mcpServers.${MCP_SERVER_NAME}.url = ${url}. Claude Code: \`${mcpClaudeAddCommand(origin)}\`. VS Code: \`.vscode/mcp.json\` with servers.${MCP_SERVER_NAME} = { "url": "${url}", "type": "http" }.`
 }
 
 /** Claude web chat. Query is the same prompt Docs' PROMPT pane copies —

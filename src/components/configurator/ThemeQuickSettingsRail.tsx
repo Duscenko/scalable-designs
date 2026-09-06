@@ -198,8 +198,11 @@ export function ThemeIdentityBand({
   )
 }
 
-/** Top fade on a rail scroll body — visible only once content has scrolled up
- *  under the pinned `ThemeIdentityBand`, not at rest. */
+/** Edge fades on a rail scroll body. The rail is `WORKSPACE_CHROME`
+ *  (`bg-tab-bar`); dissolving from `--app` painted a darker bar over the first
+ *  row — the same mismatch ThemeCodeFormat already documents. Top only after
+ *  content has scrolled under the pinned band; bottom only while more remains
+ *  below. Neither edge paints when the column does not overflow. */
 export function ThemeRailScrollRegion({
   children,
   className = '',
@@ -210,31 +213,46 @@ export function ThemeRailScrollRegion({
   padClass?: string
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [scrolled, setScrolled] = useState(false)
+  const [edges, setEdges] = useState({ top: false, bottom: false })
 
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    const sync = () => setScrolled(el.scrollTop > 1)
+    const sync = () => {
+      const overflow = el.scrollHeight - el.clientHeight > 2
+      setEdges({
+        top: overflow && el.scrollTop > 1,
+        bottom: overflow && el.scrollTop + el.clientHeight < el.scrollHeight - 2,
+      })
+    }
     sync()
     el.addEventListener('scroll', sync, { passive: true })
     const ro = new ResizeObserver(sync)
     ro.observe(el)
+    const content = el.firstElementChild
+    if (content) ro.observe(content)
     return () => {
       el.removeEventListener('scroll', sync)
       ro.disconnect()
     }
   }, [])
 
+  const fade = (edge: 'top' | 'bottom', on: boolean) => (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute inset-x-0 z-10 h-8 from-tab-bar to-transparent transition-opacity duration-150 ${
+        edge === 'top' ? 'top-0 bg-gradient-to-b' : 'bottom-0 bg-gradient-to-t'
+      } ${on ? 'opacity-100' : 'opacity-0'}`}
+    />
+  )
+
   return (
     <div className={`relative min-h-0 flex-1 ${className}`}>
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-app via-app/90 to-transparent transition-opacity duration-150 ${scrolled ? 'opacity-100' : 'opacity-0'}`}
-      />
+      {fade('top', edges.top)}
       <div ref={scrollRef} className={`h-full min-h-0 overflow-y-auto ${padClass}`}>
         {children}
       </div>
+      {fade('bottom', edges.bottom)}
     </div>
   )
 }

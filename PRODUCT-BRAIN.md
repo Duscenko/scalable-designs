@@ -1,7 +1,7 @@
 # Escala Product Brain — Doctrine v1.0
 
 **Status:** Approved doctrine, versioned in-repo. Weekly scheduled task intentionally **not yet installed** — holding until Claude CLI's current pass of fixes lands, per Cesar's decision (2026-08-24).
-**Owner:** Cesar Durango (duscenko)
+**Owner:** Cesar Durango (Duscenko)
 **Scope:** `escala-tokens` (github.com/Duscenko/escala-tokens) + `escala-figma-plugin` (github.com/Duscenko/escala-figma-plugin)
 **Author of this doctrine:** Claude (Cowork), derived from the full August 2026 audit of escalatokens.com, both repositories, and the local plugin working tree.
 

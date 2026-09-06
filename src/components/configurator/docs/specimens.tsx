@@ -1267,10 +1267,10 @@ function InputStepperSpecimen({ t }: { t: PreviewTokens }) {
   )
 }
 
-function InputTagSpecimen({ t }: { t: PreviewTokens }) {
+function InputTagSpecimen({ t, w }: SpecimenProps) {
   const tags = ['tokens', 'figma']
   return (
-    <div style={{ ...baseFont(t), display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, width: 300, minHeight: 40, padding: '6px 10px', borderRadius: radiusRoleOf(t, 'action'), border: `${strokeControl(t)} solid ${t.border ?? '#d0d5dd'}`, background: t.inputSurface ?? inputSurfaceOf(t) }}>
+    <div style={{ ...baseFont(t), display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, width: w ?? 300, minHeight: 40, padding: '6px 10px', borderRadius: radiusRoleOf(t, 'action'), border: `${strokeControl(t)} solid ${t.border ?? '#d0d5dd'}`, background: t.inputSurface ?? inputSurfaceOf(t) }}>
       {tags.map((tag) => (
         <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, background: soft(t, t.brandSolid), color: t.brandText, ...typeOf(t, 'label') }}>
           {tag}
@@ -1560,9 +1560,9 @@ function SliderSpecimen({ t, w }: SpecimenProps) {
   )
 }
 
-function FileUploadSpecimen({ t }: { t: PreviewTokens }) {
+function FileUploadSpecimen({ t, w }: SpecimenProps) {
   return (
-    <div style={{ ...baseFont(t), display: 'flex', flexDirection: 'column', gap: 10, width: 300 }}>
+    <div style={{ ...baseFont(t), display: 'flex', flexDirection: 'column', gap: 10, width: w ?? 300 }}>
       <span style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: radiusRoleOf(t, 'action'), border: `${strokeControl(t)} solid ${t.border ?? '#d0d5dd'}`, background: raisedBg(t), ...typeOf(t, 'button'), cursor: 'pointer' }}>
         <PreviewIcon concept="upload" size={14} color="currentColor" />
         Upload file
@@ -2024,7 +2024,7 @@ const SIDEBAR_ICONS: Record<string, IconConcept> = {
   gear: 'settings',
 }
 
-function SidebarSpecimen({ t }: { t: PreviewTokens }) {
+function SidebarSpecimen({ t, w }: SpecimenProps) {
   const items = [
     { icon: 'home', label: 'Overview' },
     { icon: 'color', label: 'Tokens', active: true },
@@ -2032,7 +2032,7 @@ function SidebarSpecimen({ t }: { t: PreviewTokens }) {
     { icon: 'gear', label: 'Settings' },
   ]
   return (
-    <nav aria-label="Sidebar" style={{ ...baseFont(t), width: 200, padding: 8, borderRadius: radiusRoleOf(t, 'action'), border: `${strokeControl(t)} solid ${t.borderDefault ?? '#e9eaeb'}`, background: raisedBg(t), display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <nav aria-label="Sidebar" style={{ ...baseFont(t), width: w ?? 200, padding: 8, borderRadius: radiusRoleOf(t, 'action'), border: `${strokeControl(t)} solid ${t.borderDefault ?? '#e9eaeb'}`, background: raisedBg(t), display: 'flex', flexDirection: 'column', gap: 2 }}>
       {items.map((item) => (
         <span
           key={item.label}
@@ -2077,17 +2077,18 @@ function PaginationSpecimen({ t }: { t: PreviewTokens }) {
   )
 }
 
-function StepperSpecimen({ t }: { t: PreviewTokens }) {
+function StepperSpecimen({ t, w }: SpecimenProps) {
   const steps = [
     { label: 'Account', state: 'done' },
     { label: 'Tokens', state: 'current' },
     { label: 'Publish', state: 'todo' },
   ]
+  const fill = w != null
   return (
-    <ol style={{ ...baseFont(t), display: 'flex', alignItems: 'center', gap: 0, listStyle: 'none', margin: 0, padding: 0 }}>
+    <ol style={{ ...baseFont(t), display: 'flex', alignItems: 'center', gap: 0, listStyle: 'none', margin: 0, padding: 0, width: w }}>
       {steps.map((s, i) => (
-        <li key={s.label} style={{ display: 'flex', alignItems: 'center' }} aria-current={s.state === 'current' ? 'step' : undefined}>
-          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 84 }}>
+        <li key={s.label} style={{ display: 'flex', alignItems: 'center', flex: fill ? 1 : undefined, minWidth: 0 }} aria-current={s.state === 'current' ? 'step' : undefined}>
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: fill ? '100%' : 84 }}>
             <span
               style={{
                 width: 28, height: 28, borderRadius: 999,
@@ -2106,7 +2107,7 @@ function StepperSpecimen({ t }: { t: PreviewTokens }) {
             </span>
             <span style={{ ...typeOf(t, s.state === 'current' ? 'label' : 'helper'), color: s.state === 'todo' ? t.fgMuted : t.neutralText }}>{s.label}</span>
           </span>
-          {i < steps.length - 1 && <span style={{ width: 40, height: 2, marginBottom: 20, borderRadius: 999, background: s.state === 'done' ? t.brandSolid : t.neutralFill }} aria-hidden />}
+          {i < steps.length - 1 && <span style={{ width: fill ? undefined : 40, flex: fill ? 1 : undefined, minWidth: fill ? 12 : undefined, height: 2, marginBottom: 20, borderRadius: 999, background: s.state === 'done' ? t.brandSolid : t.neutralFill }} aria-hidden />}
         </li>
       ))}
     </ol>

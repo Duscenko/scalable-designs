@@ -1,6 +1,10 @@
 import type { ComponentType } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { RAIL_COLLAPSED_WIDTH, RAIL_WIDTH } from './SectionRail'
+import { SHELL_CHROME } from './themeWorkspaceLayout'
+
+const RAIL_ROW_ACTIVE = 'border-line-strong bg-app text-fg font-semibold shadow-[0_2px_12px_-6px_rgba(0,0,0,0.24)]'
+const RAIL_ROW_IDLE = 'border-transparent text-fg-muted hover:bg-elevated hover:text-fg'
 
 function SidebarToggleIcon() {
   return (
@@ -20,8 +24,8 @@ export interface DocsRailRow {
   heading?: string
 }
 
-/** Docs' left rail — same shell as ComponentsRail (gradient shows through,
- *  h-[52px] header band, collapse toggle, RAIL_WIDTH). */
+/** Docs' left rail — same shell as ComponentsRail (`bg-tab-bar` workspace
+ *  chrome, h-[52px] header band, collapse toggle, RAIL_WIDTH). */
 export default function DocsRail({
   rows,
   activeKey,
@@ -39,7 +43,7 @@ export default function DocsRail({
   return (
     <div
       style={{ width: collapsed ? RAIL_COLLAPSED_WIDTH : RAIL_WIDTH }}
-      className="flex-shrink-0 flex flex-col min-h-0 transition-[width] duration-200"
+      className={`flex-shrink-0 flex flex-col min-h-0 transition-[width] duration-200 ${SHELL_CHROME}`}
     >
       <div
         className={`flex items-center h-[52px] flex-shrink-0 border-b border-line ${
@@ -52,7 +56,7 @@ export default function DocsRail({
           aria-label={t(collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
           aria-expanded={!collapsed}
           title={t(collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
-          className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-fg-faint hover:text-fg hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
+          className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-fg-faint hover:text-fg hover:bg-elevated/40 transition-colors"
         >
           <SidebarToggleIcon />
         </button>
@@ -72,12 +76,10 @@ export default function DocsRail({
                 onClick={() => onSelect(key)}
                 aria-current={on ? 'page' : undefined}
                 title={label}
-                className={`flex items-center h-9 rounded-xl text-ui text-left transition-all ${
+                className={`flex items-center h-9 rounded-xl border text-ui text-left transition-colors ${
                   collapsed ? 'w-9 mx-auto justify-center' : 'w-full gap-2 px-2.5'
                 } ${
-                  on
-                    ? 'bg-white text-accent-ui font-medium shadow-[0_2px_10px_-2px_rgba(0,0,0,0.15)] dark:bg-white/12 dark:shadow-none'
-                    : 'text-fg-muted hover:text-fg hover:bg-white/60 dark:hover:bg-white/10'
+                  on ? RAIL_ROW_ACTIVE : RAIL_ROW_IDLE
                 }`}
               >
                 {Icon ? (

@@ -2,6 +2,11 @@ import { useMemo, type ComponentType } from 'react'
 import { useDesignStore } from '../../store/useDesignStore'
 import { COMPONENTS, CATEGORIES, isInFigmaSample, type ComponentDef } from '../../lib/componentCatalogue'
 import { RAIL_COLLAPSED_WIDTH, RAIL_WIDTH } from './SectionRail'
+import { SHELL_CHROME } from './themeWorkspaceLayout'
+
+/** Same selected chip as Themes library · My themes (`bg-app` on `bg-nav`). */
+const RAIL_ROW_ACTIVE = 'border-line-strong bg-app text-fg font-semibold shadow-[0_2px_12px_-6px_rgba(0,0,0,0.24)]'
+const RAIL_ROW_IDLE = 'border-transparent text-fg-muted hover:bg-elevated hover:text-fg'
 
 function CatalogueCheck() {
   return (
@@ -60,7 +65,7 @@ export default function ComponentsRail({
   return (
     <div
       style={{ width: collapsed ? RAIL_COLLAPSED_WIDTH : RAIL_WIDTH }}
-      className="flex-shrink-0 flex flex-col min-h-0 transition-[width] duration-200"
+      className={`flex-shrink-0 flex flex-col min-h-0 transition-[width] duration-200 ${SHELL_CHROME}`}
     >
       <div
         className={`flex items-center h-[52px] flex-shrink-0 border-b border-line ${
@@ -73,7 +78,7 @@ export default function ComponentsRail({
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-expanded={!collapsed}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-fg-faint hover:text-fg hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
+          className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-fg-faint hover:text-fg hover:bg-elevated/40 transition-colors"
         >
           <SidebarToggleIcon />
         </button>
@@ -94,10 +99,8 @@ export default function ComponentsRail({
                   onClick={() => onSelect(items[0])}
                   aria-current={on ? 'page' : undefined}
                   title={cat}
-                  className={`flex items-center h-9 w-9 mx-auto justify-center rounded-xl transition-all ${
-                    on
-                      ? 'bg-white text-accent-ui shadow-[0_2px_10px_-2px_rgba(0,0,0,0.15)] dark:bg-white/12 dark:shadow-none'
-                      : 'text-fg-muted hover:text-fg hover:bg-white/60 dark:hover:bg-white/10'
+                  className={`flex items-center h-9 w-9 mx-auto justify-center rounded-xl border transition-colors ${
+                    on ? RAIL_ROW_ACTIVE : RAIL_ROW_IDLE
                   }`}
                 >
                   {Icon ? (
@@ -118,10 +121,10 @@ export default function ComponentsRail({
                     onClick={() => first && onSelect(first)}
                     aria-current={categoryActive && activeKey === first?.key ? 'page' : undefined}
                     title={cat}
-                    className={`flex items-center h-9 w-full gap-2 px-2.5 rounded-xl text-ui text-left transition-all ${
+                    className={`flex items-center h-9 w-full gap-2 px-2.5 rounded-lg text-ui text-left transition-colors ${
                       categoryActive
-                        ? 'bg-white text-accent-ui font-medium shadow-[0_2px_10px_-2px_rgba(0,0,0,0.15)] dark:bg-white/12 dark:shadow-none'
-                        : 'text-fg-muted hover:text-fg hover:bg-white/60 dark:hover:bg-white/10'
+                        ? 'text-fg font-semibold'
+                        : 'text-fg-muted hover:text-fg hover:bg-elevated'
                     }`}
                   >
                     {Icon ? (
@@ -149,10 +152,8 @@ export default function ComponentsRail({
                               onSelect(comp)
                             }
                           }}
-                          className={`flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg text-body cursor-pointer transition-colors ${
-                            isActive
-                              ? 'bg-surface text-fg border border-line shadow-sm'
-                              : 'text-fg-muted hover:bg-elevated/40 hover:text-fg border border-transparent'
+                          className={`flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-xl border text-body cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50 ${
+                            isActive ? RAIL_ROW_ACTIVE : RAIL_ROW_IDLE
                           }`}
                         >
                           <span className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -160,7 +161,9 @@ export default function ComponentsRail({
                             {!isInFigmaSample(comp.key) && (
                               <span
                                 title="No renderiza como componente en el import de Figma hoy — ships como spec para tu agente/código"
-                                className="flex-shrink-0 text-micro leading-none px-1 py-0.5 rounded border border-line-strong/60 text-fg-faint uppercase tracking-wide"
+                                className={`flex-shrink-0 text-micro leading-none px-1 py-0.5 rounded border border-line-strong/60 uppercase tracking-wide ${
+                                  isActive ? 'text-fg-muted' : 'text-fg-faint'
+                                }`}
                               >
                                 Code
                               </span>
@@ -172,7 +175,11 @@ export default function ComponentsRail({
                               toggleComponent(comp.key)
                             }}
                             className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all ${
-                              isSelected ? 'bg-fg text-app' : 'bg-elevated border border-line-strong'
+                              isSelected
+                                ? 'bg-fg text-app'
+                                : isActive
+                                  ? 'bg-nav border border-line-strong'
+                                  : 'bg-app border border-line-strong'
                             }`}
                             aria-label={
                               isSelected ? `Remove ${comp.label} from the system` : `Add ${comp.label} to the system`

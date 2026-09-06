@@ -56,6 +56,13 @@ const TabMenu = inspectable('TabMenu')
 const Progress = inspectable('Progress')
 const StatusBadge = inspectable('StatusBadge')
 const Chip = inspectable('Chip')
+const Sidebar = inspectable('Sidebar')
+const InputTag = inspectable('InputTag')
+const CheckboxGroup = inspectable('CheckboxGroup')
+const FileUpload = inspectable('FileUpload')
+const Stepper = inspectable('Stepper')
+const Pagination = inspectable('Pagination')
+const Spinner = inspectable('Spinner')
 
 /** `Live` already carries the catalogue key as `c`, so the marker reads it
  *  straight off the prop rather than being restated. */
@@ -549,6 +556,34 @@ export function SystemCollage({
         <StatusBadge t={tile(17)} v={{ Status: 'Online' }} />
         <StatusBadge t={tile(17)} v={{ Status: 'Busy' }} />
         <Chip t={tile(17)} v={{ Selected: 'True' }} />
+      </ScaledModule>
+
+      <ScaledModule t={tile(18)} appearance={appearanceAt(18)} chrome={false} elev="sm">
+        <Sidebar t={tile(18)} v={{}} w="100%" />
+      </ScaledModule>
+
+      <ScaledModule t={tile(19)} appearance={appearanceAt(19)}>
+        <InputTag t={tile(19)} v={{}} w="100%" />
+      </ScaledModule>
+
+      <ScaledModule t={tile(20)} appearance={appearanceAt(20)}>
+        <CheckboxGroup t={tile(20)} v={{}} />
+      </ScaledModule>
+
+      <ScaledModule t={tile(21)} appearance={appearanceAt(21)}>
+        <FileUpload t={tile(21)} v={{}} w="100%" />
+      </ScaledModule>
+
+      <ScaledModule t={tile(22)} appearance={appearanceAt(22)}>
+        <Stepper t={tile(22)} v={{}} w="100%" />
+      </ScaledModule>
+
+      <ScaledModule t={tile(23)} appearance={appearanceAt(23)} style={{ alignItems: 'center' }}>
+        <Pagination t={tile(23)} v={{}} />
+      </ScaledModule>
+
+      <ScaledModule t={tile(24)} appearance={appearanceAt(24)} style={{ alignItems: 'center', justifyContent: 'center', minHeight: 72 }}>
+        <Spinner t={tile(24)} v={{ Size: 'MD' }} />
       </ScaledModule>
     </div>
   )

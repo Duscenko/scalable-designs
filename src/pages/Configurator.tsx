@@ -1924,14 +1924,14 @@ export default function Configurator() {
       {/* ── Row 3: the footer hairline ──
           The shell is a fixed-viewport app (h-screen, no page scroll), so there
           is no "bottom of the page" for a conventional footer to sit at. This is
-          a 28px rule instead — attribution only, no links: the About TAB already
-          carries the full story (how it works, changelog, legal), so repeating
-          entry points here just competed for attention. `bg-nav` keeps this
+          a 28px rule instead — copyright plus Source / MIT License colophon
+          links. The About TAB already carries the full story (how it works,
+          changelog, legal). `bg-nav` keeps this
           strip on `--nav` with TopNav and the Themes library — the shell
           frame. `--tab-bar` is the workspace level; `--app` is the page. */}
       <footer className={`flex-shrink-0 h-7 flex items-center gap-3 px-4 lg:px-5 border-t border-line ${SHELL_CHROME}`}>
         <span className="min-w-0 flex-1 text-mini text-fg-faint truncate">
-          {COPYRIGHT_LINE} · Built by Cesar Durango
+          {COPYRIGHT_LINE}
         </span>
         {/* The project's own source. It used to be an icon button in TopNav's
             global cluster, next to Language and Appearance — but those change
@@ -1967,7 +1967,7 @@ export default function Configurator() {
           <span className="hidden sm:inline">Source</span>
         </a>
         <a
-          href="https://github.com/Duscenko/escala-tokens?tab=MIT-1-ov-file"
+          href="https://github.com/Duscenko/escala-tokens/blob/main/LICENSE"
           target="_blank"
           rel="noreferrer"
           aria-label="Read the MIT License"

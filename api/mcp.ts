@@ -43,6 +43,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   applyCors(res)
   res.setHeader('Cache-Control', 'no-store')
 
+  if (req.method === 'HEAD') {
+    return res.status(200).end()
+  }
+
   if (req.method === 'GET') {
     const proto = (req.headers['x-forwarded-proto'] as string) || 'https'
     const host = req.headers.host || 'escalatokens.com'

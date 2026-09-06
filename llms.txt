@@ -24,8 +24,8 @@ The source of truth for a generated system is the live token payload, not this r
 
 ## Live access (HTTP)
 
-- `GET https://www.escalatokens.com/api/mcp` — MCP discovery (tools + schema URL)
-- `POST https://www.escalatokens.com/api/mcp` — MCP JSON-RPC (`initialize`, `tools/list`, `tools/call`)
+- `GET https://escalatokens.com/api/mcp` — MCP discovery (tools + schema URL)
+- `POST https://escalatokens.com/api/mcp` — MCP JSON-RPC (`initialize`, `tools/list`, `tools/call`)
 - [MCP tools](docs/agent-native/MCP.md)
 - `GET https://www.escalatokens.com/docs/agent-native/tokens.schema.json` — Escala JSON Schema
 - `GET https://www.escalatokens.com/api/tokens?project=<slug>` — published Escala JSON (public read)

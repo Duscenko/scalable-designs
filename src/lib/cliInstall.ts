@@ -9,6 +9,7 @@ import {
   MCP_SERVER_NAME,
   mcpConfigPath,
   mcpEndpoint,
+  mcpOrigin,
   skillInstallPath,
   type McpClient,
   type SkillAgent,
@@ -54,8 +55,10 @@ export interface CliIo {
 
 export function originFromMcpUrl(urlOrOrigin: string): string {
   const trimmed = urlOrOrigin.trim().replace(/\/$/, '')
-  if (trimmed.endsWith('/api/mcp')) return trimmed.slice(0, -'/api/mcp'.length) || DEFAULT_PUBLISH_ORIGIN
-  return trimmed || DEFAULT_PUBLISH_ORIGIN
+  const stripped = trimmed.endsWith('/api/mcp')
+    ? trimmed.slice(0, -'/api/mcp'.length)
+    : trimmed
+  return mcpOrigin(stripped || DEFAULT_PUBLISH_ORIGIN)
 }
 
 export function tokensUrl(origin: string, slug: string): string {
@@ -91,8 +94,7 @@ export function mergeMcpConfig(existing: unknown, client: McpClient, origin: str
     return { ...base, servers: { ...servers, [MCP_SERVER_NAME]: { url, type: 'http' } } }
   }
   const servers = isPlain(base.mcpServers) ? { ...base.mcpServers } : {}
-  const entry = client === 'claude' ? { url, type: 'http' } : { url }
-  return { ...base, mcpServers: { ...servers, [MCP_SERVER_NAME]: entry } }
+  return { ...base, mcpServers: { ...servers, [MCP_SERVER_NAME]: { url, type: 'http' } } }
 }
 
 function isPlain(value: unknown): value is Record<string, unknown> {

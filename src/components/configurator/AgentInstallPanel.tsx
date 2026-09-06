@@ -141,7 +141,13 @@ export default function AgentInstallPanel({
       </div>
 
       {effectiveMode === 'prompt' ? (
-        <PromptPane prompt={agentSetupPrompt(origin, slug)} />
+        <PromptPane
+          prompt={agentSetupPrompt(
+            origin,
+            slug,
+            tab === 'vscode' || tab === 'claude' || tab === 'cursor' ? tab : undefined,
+          )}
+        />
       ) : (
         <>
           {!inWizard && !teaser && tab !== 'make' && (
@@ -194,19 +200,19 @@ function stepsFor(tab: InstallClient, origin: string, slug: string, projectName:
     return [
       {
         title: 'Add the server',
-        body: <>Writes <Mono>.vscode/mcp.json</Mono> for you. Reload the window after.</>,
-        code: cliMcpInitCommand('vscode', origin),
-      },
-      {
-        title: 'Or edit it yourself',
         body: (
           <>
-            The key is <Mono>servers</Mono>, not <Mono>mcpServers</Mono>. VS Code is the one client
-            that spells it differently.
+            Paste this into <Mono>.vscode/mcp.json</Mono>. The key is <Mono>servers</Mono>, not{' '}
+            <Mono>mcpServers</Mono>. Reload the window after.
           </>
         ),
         code: mcpVscodeConfig(origin),
         file: '.vscode/mcp.json',
+      },
+      {
+        title: 'Or let the CLI write it',
+        body: <>Same file, written by the installer. Paste the JSON above if you would rather not run npx.</>,
+        code: cliMcpInitCommand('vscode', origin),
       },
       // Deliberately no offline-package step: `SkillAgent` is cursor|claude,
       // and Copilot has no skills folder to install one into.
@@ -214,9 +220,9 @@ function stepsFor(tab: InstallClient, origin: string, slug: string, projectName:
         title: 'Ask it for a token',
         body: (
           <>
-            Copilot can now call <Mono>resolve_token</Mono> and <Mono>check_contrast</Mono>. The
-            token tools take an optional <Mono>project</Mono>. This system is <Mono>{slug}</Mono>,
-            the same slug Figma Sync uses.
+            Copilot can now call <Mono>resolve_token</Mono> and <Mono>check_contrast</Mono>. Token
+            tools require <Mono>project</Mono> — this system is <Mono>{slug}</Mono>, the same slug
+            Figma Sync uses.
           </>
         ),
       },
@@ -227,13 +233,24 @@ function stepsFor(tab: InstallClient, origin: string, slug: string, projectName:
     return [
       {
         title: 'Add the server',
-        body: <>Anthropic&apos;s own CLI, not Escala&apos;s. Restart Claude Code after.</>,
+        body: (
+          <>
+            Anthropic&apos;s own CLI, not Escala&apos;s. <Mono>--scope project</Mono> writes{' '}
+            <Mono>.mcp.json</Mono> in this repo. Restart Claude Code after.
+          </>
+        ),
         code: mcpClaudeAddCommand(origin),
       },
       {
         title: 'Or write the project file',
-        body: <>Writes <Mono>.mcp.json</Mono>, so the whole team gets it when you commit it.</>,
-        code: cliMcpInitCommand('claude', origin),
+        body: (
+          <>
+            Same <Mono>.mcp.json</Mono> the CLI writes. Paste this if you would rather not run a
+            command.
+          </>
+        ),
+        code: mcpCursorConfig(origin),
+        file: '.mcp.json',
       },
       {
         title: 'Install the offline package',
@@ -252,19 +269,19 @@ function stepsFor(tab: InstallClient, origin: string, slug: string, projectName:
   return [
     {
       title: 'Add the server',
-      body: <>Writes <Mono>.cursor/mcp.json</Mono> for you. Restart Cursor after.</>,
-      code: cliMcpInitCommand('cursor', origin),
-    },
-    {
-      title: 'Or edit mcp.json',
       body: (
         <>
-          <Mono>.cursor/mcp.json</Mono> for this project, <Mono>~/.cursor/mcp.json</Mono> for all of
-          them.
+          Paste this into <Mono>.cursor/mcp.json</Mono> for this project, or{' '}
+          <Mono>~/.cursor/mcp.json</Mono> for all of them. Restart Cursor after.
         </>
       ),
       code: mcpCursorConfig(origin),
       file: '.cursor/mcp.json',
+    },
+    {
+      title: 'Or let the CLI write it',
+      body: <>Same file, written by the installer. Paste the JSON above if you would rather not run npx.</>,
+      code: cliMcpInitCommand('cursor', origin),
     },
     {
       title: 'Install the offline package',

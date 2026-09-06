@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useDesignStore } from '../store/useDesignStore'
 import { generateTokenJSON, setActiveThemeHint, type GenerateTokenOptions } from './tokenGenerator'
-import { DEFAULT_PUBLISH_ORIGIN } from './agentInstall'
+import { DEFAULT_PUBLISH_ORIGIN, mcpOrigin } from './agentInstall'
 import { claimStorageKey } from './publishTrust'
 import { slugify } from './utils'
 
@@ -59,7 +59,7 @@ export function syncProjectId(fileName?: string): string {
 export function publishOrigin(): string {
   if (typeof window === 'undefined') return DEFAULT_PUBLISH_ORIGIN
   if (!isLiveEnvironment()) return DEFAULT_PUBLISH_ORIGIN
-  return window.location.origin || DEFAULT_PUBLISH_ORIGIN
+  return mcpOrigin(window.location.origin || DEFAULT_PUBLISH_ORIGIN)
 }
 
 /** Relative endpoint used for the POST (and what the plugin should GET). */

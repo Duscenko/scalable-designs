@@ -146,7 +146,7 @@ function CopyPageSplit({
   }
 
   const openClaude = async () => {
-    const prompt = agentSetupPrompt(publishOrigin(), syncProjectId())
+    const prompt = agentSetupPrompt(publishOrigin(), syncProjectId(), 'claude')
     const copiedOk = await writeClipboard(prompt)
     openHandoff(claudeChatUrl(prompt))
     setOpen(false)
@@ -156,7 +156,7 @@ function CopyPageSplit({
   }
 
   const openCursor = async () => {
-    const prompt = agentSetupPrompt(publishOrigin(), syncProjectId())
+    const prompt = agentSetupPrompt(publishOrigin(), syncProjectId(), 'cursor')
     const copiedOk = await writeClipboard(prompt)
     openHandoff(cursorPromptUrl(prompt))
     setOpen(false)
