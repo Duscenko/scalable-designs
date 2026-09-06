@@ -4,6 +4,7 @@ import { TOKEN_SCHEMA_VERSION } from '../../lib/tokenGenerator'
 import { useI18n } from '../../lib/i18n'
 import { COMPONENT_KEYS } from '../../lib/componentCatalogue'
 import { ALL_ROLES } from '../../lib/semanticRoles'
+import { categoricalRoleCount } from '../../lib/semanticArchitectures'
 import { TOOL_SPECS } from '../../lib/agentAccess/types'
 import { FIGMA_PLUGIN_ZIP, cn } from '../../lib/utils'
 import { BrandMark, FigmaGlyph, TOP_NAV_H } from './TopNav'
@@ -95,97 +96,111 @@ function Tier({ n, name, detail, example }: { n: number; name: string; detail: s
   )
 }
 
-export const SECTIONS: { key: AboutSection; label: string; hint: string; body: ReactNode }[] = [
+/** The five About sections.
+ *
+ *  **A HOOK, not a const array — that change is what made this page
+ *  translatable at all.** It used to be a module-level `SECTIONS` const whose
+ *  bodies were English JSX literals, so no `t()` could ever reach them: the
+ *  chrome around the accordion spoke three languages while every word of the
+ *  actual reading material stayed English. A hook runs inside a component, so
+ *  it can call `useI18n`. Both consumers (`AboutAccordion` here, and
+ *  `AboutScaffold`'s mobile/`/about` callers through it) are components, so
+ *  nothing had to move to accommodate it. */
+export function useAboutSections(): {
+  key: AboutSection; label: string; hint: string; body: ReactNode
+}[] {
+  const { t } = useI18n()
+  return [
   {
     key: 'platform',
-    label: 'What Escala is',
-    hint: 'The short version',
+    label: t('What Escala is'),
+    hint: t('The short version'),
     body: (
       <div className="flex flex-col gap-3">
         <P>
-          A configurator for design token systems. You define a palette, type scale, spacing,
-          radius and the rest once; Escala derives the full scales, keeps light and dark in
-          step, and ships the result as <C>tokens.json</C>, <C>variables.css</C> and a
-          README, plus a Figma plugin that imports all of it as real Variables.
+          {t('A configurator for design token systems. You define a palette, type scale, spacing, radius and the rest once; Escala derives the full scales, keeps light and dark in step, and ships the result as')}{' '}
+          <C>tokens.json</C>, <C>variables.css</C>{' '}
+          {t('and a README, plus a Figma plugin that imports all of it as real Variables.')}
         </P>
         <P>
-          The point is <span className="text-fg">no bloat</span>: you export the tokens you
-          actually chose, not a framework's opinion of a design system. Everything on screen
-          derives from one payload, so the preview, the export and what lands in Figma can't
-          disagree.
+          {t('The point is')} <span className="text-fg">{t('no bloat')}</span>
+          {t(": you export the tokens you actually chose, not a framework's opinion of a design system. Everything on screen derives from one payload, so the preview, the export and what lands in Figma can't disagree.")}
         </P>
         <P>
-          That same payload is also queryable <span className="text-fg">live, by AI coding
-          agents</span> such as Cursor, Claude Code and Copilot, through a Model Context
-          Protocol (MCP) server this project publishes. Instead of guessing a hex or a
-          spacing value, your agent looks the real token up.
+          {t('That same payload is also queryable')}{' '}
+          <span className="text-fg">{t('live, by AI coding agents')}</span>{' '}
+          {t('such as Cursor, Claude Code and Copilot, through a Model Context Protocol (MCP) server this project publishes. Instead of guessing a hex or a spacing value, your agent looks the real token up.')}
         </P>
       </div>
     ),
   },
   {
     key: 'tokens',
-    label: 'How the tokens work',
-    hint: 'Three tiers, one chain',
+    label: t('How the tokens work'),
+    hint: t('Three tiers, one chain'),
     body: (
       <div className="flex flex-col gap-3.5">
         <P>
-          Every value resolves down a chain. Nothing holds a copy of anything above it, so
-          retinting one family repaints everything that references it.
+          {t('Every value resolves down a chain. Nothing holds a copy of anything above it, so retinting one family repaints everything that references it.')}
         </P>
         <div className="flex flex-col gap-3">
           <Tier
             n={1}
-            name="Primitives"
-            detail="Radix's model: each family is a 1–12 scale where the step means a role, not a lightness. Tone 9 is the anchor: your input hex, verbatim. Every family ships a light ramp and a dark twin."
+            name={t('Primitives')}
+            detail={t("Radix's model: each family is a 1–12 scale where the step means a role, not a lightness. Tone 9 is the anchor: your input hex, verbatim. Every family ships a light ramp and a dark twin.")}
             example="accent-9 · neutral-dark-3 · error-11"
           />
           <Tier
             n={2}
-            name="Semantics"
-            detail="Named roles that point AT a primitive tone, per theme. A theme is a reading of the primitives; it stores which family fills each slot, never a hex of its own."
+            name={t('Semantics')}
+            detail={t('Named roles that point AT a primitive tone, per theme. A theme is a reading of the primitives; it stores which family fills each slot, never a hex of its own.')}
             example="text-primary → neutral-12"
           />
           <Tier
             n={3}
-            name="Components"
-            detail="Created by the plugin in Figma: one variable per component property, aliasing its semantic role. Retheming a button is a one-variable change, and the whole chain stays inspectable."
+            name={t('Components')}
+            detail={t('Created by the plugin in Figma: one variable per component property, aliasing its semantic role. Retheming a button is a one-variable change, and the whole chain stays inspectable.')}
             example="button/bg → action/primary → accent-9"
           />
         </div>
+        {/* This paragraph used to advertise FOUR semantic architectures —
+            Flat, Categorical, Vibrancy (Apple HIG) and Tonal (Material 3).
+            Three of those no longer exist: the picker was cut to Categorical
+            alone in store v50 and the projections were deleted outright in
+            v57, leaving `SemanticArchitecture = 'flat' | 'categorical'`. The
+            page was promising a choice the app cannot offer, and Docs · FAQ
+            already answered "Why is there only one architecture?" two clicks
+            away — the app contradicting itself. The role count is READ from
+            the table (`categoricalRoleCount()`), never restated, because the
+            other place that restated it had drifted to 39 against a real 64. */}
         <P>
-          The semantic layer can be projected into four shapes: <span className="text-fg">Flat</span>{' '}
-          (the full role matrix), <span className="text-fg">Categorical</span> (a grouped DTCG
-          tree), <span className="text-fg">Vibrancy</span> (Apple HIG alpha layers) and{' '}
-          <span className="text-fg">Tonal</span> (Material 3 tonal palettes). Contrast for text
-          tones is solved against the page, targeting WCAG AA.
+          {t('The semantic layer is projected into one shape:')}{' '}
+          <span className="text-fg">{t('Categorical')}</span>{' '}
+          {t('— a grouped DTCG tree of {count} roles across Content, Action, Surface, Status and Border. One architecture, not a choice: every consumer (Figma, CSS, an AI agent) has to agree on what a role means. Contrast for text tones is solved against the page, targeting WCAG AA.', { count: categoricalRoleCount() })}
         </P>
       </div>
     ),
   },
   {
     key: 'plugin',
-    label: 'How the Figma plugin works',
-    hint: 'Import and live sync',
+    label: t('How the Figma plugin works'),
+    hint: t('Import and live sync'),
     body: (
       <div className="flex flex-col gap-3">
         <P>
-          The plugin reads the same <C>tokens.json</C> this app exports (contract{' '}
-          <span className="text-fg">schema v{TOKEN_SCHEMA_VERSION}</span>) and builds real Figma
-          Variable collections: Color Primitives, Color Semantics with a mode per theme,
-          Typography, Spacing, Radius, and a Components collection whose variables alias the
-          semantic roles.
+          {t('The plugin reads the same')} <C>tokens.json</C>{' '}
+          {t('this app exports (contract')}{' '}
+          <span className="text-fg">{t('schema v{version}', { version: TOKEN_SCHEMA_VERSION })}</span>
+          {t(') and builds real Figma Variable collections: Color Primitives, Color Semantics with a mode per theme, Typography, Spacing, Radius, and a Components collection whose variables alias the semantic roles.')}
         </P>
         <ol className="flex flex-col gap-1.5 text-body leading-relaxed text-fg-muted list-decimal pl-4">
-          <li>Download the plugin and unzip it.</li>
-          <li>Figma desktop → <span className="text-fg">Plugins → Development → Import plugin from manifest…</span></li>
-          <li>Pick the unzipped <C>manifest.json</C>, then run <span className="text-fg">Escala DS</span>.</li>
-          <li>Choose what to import: variables, styles, components, documentation.</li>
+          <li>{t('Download the plugin and unzip it.')}</li>
+          <li>{t('Figma desktop →')} <span className="text-fg">{t('Plugins → Development → Import plugin from manifest…')}</span></li>
+          <li>{t('Pick the unzipped')} <C>manifest.json</C>, {t('then run')} <span className="text-fg">Escala DS</span>.</li>
+          <li>{t('Choose what to import: variables, styles, components, documentation.')}</li>
         </ol>
         <P>
-          It can also pull live: the plugin's Live Sync tab polls this project's endpoint, so
-          publishing from here updates Figma without re-importing a file. Each design system
-          publishes to its own scoped URL, so systems never overwrite each other.
+          {t("It can also pull live: the plugin's Live Sync tab polls this project's endpoint, so publishing from here updates Figma without re-importing a file. Each design system publishes to its own scoped URL, so systems never overwrite each other.")}
         </P>
         <a
           href={FIGMA_PLUGIN_ZIP}
@@ -196,68 +211,65 @@ export const SECTIONS: { key: AboutSection; label: string; hint: string; body: R
             <path d="M7 1.5v8M3.5 6.5 7 10l3.5-3.5" />
             <path d="M1.5 10.5v1.5a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-1.5" />
           </svg>
-          Download the plugin (.zip)
+          {t('Download the plugin (.zip)')}
         </a>
       </div>
     ),
   },
   {
     key: 'docs',
-    label: 'What the documentation is based on',
-    hint: 'Sources of truth',
+    label: t('What the documentation is based on'),
+    hint: t('Sources of truth'),
     body: (
       <div className="flex flex-col gap-3">
         <P>
-          <span className="text-fg">The Figma plugin is the source of truth for the catalogue.</span>{' '}
-          Each of the {COMPONENT_KEYS.length} components mirrors a plugin entry: its key is the
-          plugin's gate, its variant axes mirror the plugin's spec matrix, and its category
-          mirrors the plugin's divider pages. When the plugin changes, the catalogue follows,
-          never the reverse.
+          <span className="text-fg">{t('The Figma plugin is the source of truth for the catalogue.')}</span>{' '}
+          {t("Each of the {count} components mirrors a plugin entry: its key is the plugin's gate, its variant axes mirror the plugin's spec matrix, and its category mirrors the plugin's divider pages. When the plugin changes, the catalogue follows, never the reverse.", { count: COMPONENT_KEYS.length })}
         </P>
         <P>
-          Docs pages are generated from that catalogue plus the live specimen registry, so the
-          preview you interact with is the same renderer the docs embed; it reads your tokens,
-          not a screenshot. Components not yet in the Figma library say so explicitly rather
-          than implying a set that doesn't exist.
+          {t("Docs pages are generated from that catalogue plus the live specimen registry, so the preview you interact with is the same renderer the docs embed; it reads your tokens, not a screenshot. Components not yet in the Figma library say so explicitly rather than implying a set that doesn't exist.")}
         </P>
+        {/* "and Apple HIG / Material 3 for the two alternative semantic
+            architectures" was cut here for the same reason as above: those two
+            architectures are gone, so the sentence credited standards this app
+            no longer implements. */}
         <P>
-          The standards behind the defaults: <span className="text-fg">Radix Colors</span> for
-          the 12-step scale model, <span className="text-fg">W3C Design Tokens (DTCG)</span> for
-          the interchange format, <span className="text-fg">WCAG</span> for contrast targets,
-          and Apple HIG / Material 3 for the two alternative semantic architectures.
+          {t('The standards behind the defaults:')} <span className="text-fg">Radix Colors</span>{' '}
+          {t('for the 12-step scale model,')} <span className="text-fg">W3C Design Tokens (DTCG)</span>{' '}
+          {t('for the interchange format, and')} <span className="text-fg">WCAG</span>{' '}
+          {t('for contrast targets.')}
         </P>
       </div>
     ),
   },
   {
     key: 'legal',
-    label: 'Legal & data',
-    hint: 'Ownership and storage',
+    label: t('Legal & data'),
+    hint: t('Ownership and storage'),
     body: (
       <div className="flex flex-col gap-3">
         <P>
-          {COPYRIGHT_LINE}. Escala Tokens and its source are the work of Cesar Durango.
-          The design systems you build with it are <span className="text-fg">yours</span>.
-          The tokens, scales and exported files carry no licence or attribution requirement
-          from this tool.
+          {COPYRIGHT_LINE}.{' '}
+          {t('Escala Tokens and its source are the work of Cesar Durango. The design systems you build with it are')}{' '}
+          <span className="text-fg">{t('yours')}</span>.{' '}
+          {t('The tokens, scales and exported files carry no licence or attribution requirement from this tool.')}
         </P>
         <P>
-          <span className="text-fg">Where your work lives:</span> your system is stored in your
-          own browser (localStorage); there are no accounts and no server-side profile. Tokens
-          leave the browser only when you ask: publishing for Figma live-sync uploads the token
-          payload to this project's endpoint, and connecting GitHub pushes files to the repo you
-          pick. A GitHub token you provide stays in your browser and is never sent anywhere but
-          GitHub.
+          <span className="text-fg">{t('Where your work lives:')}</span>{' '}
+          {t("your system is stored in your own browser (localStorage); there are no accounts and no server-side profile. Tokens leave the browser only when you ask: publishing for Figma live-sync uploads the token payload to this project's endpoint, and connecting GitHub pushes files to the repo you pick. A GitHub token you provide stays in your browser and is never sent anywhere but GitHub.")}
         </P>
+        {/* Material Design and Apple HIG were dropped from this disclaimer
+            with the architectures that referenced them — a trademark notice
+            should name what the project actually leans on, and after v57 that
+            is Figma, Radix and W3C. */}
         <P className="text-fg-faint">
-          Figma is a trademark of Figma, Inc. Radix, Material Design and Apple Human Interface
-          Guidelines are referenced as public standards; this project is not affiliated with,
-          endorsed by, or sponsored by any of them.
+          {t('Figma is a trademark of Figma, Inc. Radix Colors and the W3C Design Tokens format are referenced as public standards; this project is not affiliated with, endorsed by, or sponsored by any of them.')}
         </P>
       </div>
     ),
   },
-]
+  ]
+}
 
 function MailIcon() {
   return (
@@ -388,6 +400,7 @@ export function AboutAccordion({
    *  always-on hairline between them was a redundant second boundary. */
   bleed?: boolean
 }) {
+  const sections = useAboutSections()
   return (
     <Accordion
       type="single"
@@ -395,7 +408,7 @@ export function AboutAccordion({
       value={section ?? ''}
       onValueChange={(v) => onSectionChange((v || null) as AboutSection | null)}
     >
-      {SECTIONS.map((s) => {
+      {sections.map((s) => {
         const Icon = SECTION_ICONS[s.key]
         return (
           <AccordionItem key={s.key} value={s.key} data-section={s.key} className={bleed ? 'border-b-0' : undefined}>
@@ -427,12 +440,13 @@ export function AboutAccordion({
  *  otherwise all cards (stats, Figma/Code/AI), a flat block read as
  *  unfinished rather than deliberately quiet. */
 export function AboutContact({ pad = 'px-5', card = false }: { pad?: string; card?: boolean }) {
+  const { t } = useI18n()
   const body = (
     <>
-      <span className="text-caption font-semibold uppercase tracking-widest text-fg-faint">Contact</span>
+      <span className="text-caption font-semibold uppercase tracking-widest text-fg-faint">{t('Contact')}</span>
       <P>
-        Built and maintained by <span className="text-fg">Cesar Durango</span>,
-        design systems and design engineering.
+        {t('Built and maintained by')} <span className="text-fg">Cesar Durango</span>,{' '}
+        {t('design systems and design engineering.')}
       </P>
       <div className="flex flex-col mt-0.5">
         {CONTACT.linkedin && (
@@ -849,6 +863,7 @@ export function AboutScaffold({
   ctaHref?: string
   ctaLabel?: string
 }) {
+  const { t } = useI18n()
   const [section, setSection] = useState<AboutSection | null>(null)
 
   return (
@@ -864,7 +879,7 @@ export function AboutScaffold({
             href={ctaHref}
             className="inline-flex items-center gap-1.5 mt-1 text-body font-semibold text-accent-ui hover:underline"
           >
-            {ctaLabel ?? 'Open the configurator'}
+            {ctaLabel ?? t('Open the configurator')}
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
@@ -889,7 +904,7 @@ export function AboutScaffold({
 
       <footer className="mt-auto px-5 py-4 border-t border-line">
         <p className="text-caption text-fg-faint">
-          {COPYRIGHT_LINE} · All rights reserved. Figma is a trademark of Figma, Inc.
+          {COPYRIGHT_LINE} · {t('All rights reserved.')} {t('Figma is a trademark of Figma, Inc.')}
         </p>
       </footer>
     </div>
@@ -907,6 +922,7 @@ export default function AboutMenu({
   onSectionChange: (s: AboutSection | null) => void
   onClose: () => void
 }) {
+  const { t } = useI18n()
   const bodyRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -933,7 +949,7 @@ export default function AboutMenu({
       className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
-      aria-label="About Escala Tokens"
+      aria-label={t('About Escala Tokens')}
     >
       <motion.aside
         initial={{ x: '100%' }}
@@ -952,7 +968,7 @@ export default function AboutMenu({
           <div className="min-w-0 truncate text-ui font-semibold text-fg">Escala Tokens</div>
           <button
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label={t('Close menu')}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-fg-faint hover:text-fg hover:bg-elevated/60 transition-colors flex-shrink-0"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -968,7 +984,7 @@ export default function AboutMenu({
 
         <div className="flex-shrink-0 px-5 py-3 border-t border-line flex items-center justify-between gap-3">
           <p className="text-caption text-fg-faint truncate">
-            {COPYRIGHT_LINE} · Figma is a trademark of Figma, Inc.
+            {COPYRIGHT_LINE} · {t('Figma is a trademark of Figma, Inc.')}
           </p>
           {/* The one shareable link to this content — the drawer itself has no
               URL, so anyone asked "what is this?" gets /about instead. */}
@@ -978,7 +994,7 @@ export default function AboutMenu({
             rel="noreferrer"
             className="flex-shrink-0 text-caption font-semibold text-accent-ui hover:underline"
           >
-            Full page ↗
+            {t('Full page')} ↗
           </a>
         </div>
       </motion.aside>

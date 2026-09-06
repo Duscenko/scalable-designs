@@ -1251,7 +1251,7 @@ export default function ThemeQuickSettingsRail({
     // Auto-adopt as "<Style> Copy" — the first quick-settings edit is the user
     // starting to iterate, so it lands in MY THEMES as a duplication of the
     // style, not as the style itself.
-    const adopted = adoptPreset(tryOn.preset, previewAppearance, { asCopy: true, copyWord: t('Copy') })
+    const adopted = adoptPreset(tryOn.preset, previewAppearance, { asCopy: true, copyWord: t('Copy (duplicated theme suffix)') })
     if ('error' in adopted) { setAdoptError(t(adopted.error, { count: ownThemeCount })); return null }
     setAdoptError(null)
     // The write itself is silent — a slider that repaints the board is its own

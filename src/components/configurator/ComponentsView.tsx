@@ -15,6 +15,7 @@ import { COMPONENTS, type ComponentDef } from '../../lib/componentCatalogue'
 import { usePreviewTokens } from '../../lib/previewTokens'
 import { OnThisPage } from './docs/blocks'
 import { ComponentArticle, componentToc } from './docs/componentArticle'
+import { useI18n } from '../../lib/i18n'
 
 export default function ComponentsView({
   previewTheme = 'light', active, onSelect,
@@ -23,6 +24,7 @@ export default function ComponentsView({
   active: ComponentDef | null
   onSelect: (c: ComponentDef) => void
 }) {
+  const { t } = useI18n()
   const tokens = usePreviewTokens(previewTheme)
   const articleRef = useRef<HTMLDivElement>(null)
 
@@ -32,7 +34,7 @@ export default function ComponentsView({
     articleRef.current?.scrollTo({ top: 0 })
   }, [def.key])
 
-  const toc = componentToc(def)
+  const toc = componentToc(def, t)
 
   return (
     <div className="h-full flex min-h-0">

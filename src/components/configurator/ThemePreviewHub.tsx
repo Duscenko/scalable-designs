@@ -905,7 +905,7 @@ export default function ThemePreviewHub({
   // hands one back.
   const recordTryOnEdit = (tokenId: string, mode: string, ref: string | null) => {
     if (ref && stylePreview) {
-      const adopted = adoptPreset(stylePreview.preset, previewAppearance, { asCopy: true, copyWord: t('Copy') })
+      const adopted = adoptPreset(stylePreview.preset, previewAppearance, { asCopy: true, copyWord: t('Copy (duplicated theme suffix)') })
       if ('error' in adopted) {
         showToast(t(adopted.error, { count: myThemeKeys(store.themeOrder, store.themes).length }))
         return

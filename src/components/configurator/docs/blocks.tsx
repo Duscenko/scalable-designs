@@ -18,8 +18,9 @@ import type { UseIt, UseItDestId } from './useIt'
 // ── Copy ─────────────────────────────────────────────────────────────────────
 
 export function CopyButton({
-  text, label = 'Copy', title,
+  text, label, title,
 }: { text: string; label?: string; title?: string }) {
+  const { t } = useI18n()
   const [copied, setCopied] = useState(false)
   async function copy() {
     await navigator.clipboard.writeText(text)
@@ -33,11 +34,11 @@ export function CopyButton({
       className="flex items-center gap-1.5 text-caption text-fg-muted hover:text-fg transition-colors whitespace-nowrap"
     >
       {copied ? (
-        <><span className="text-status-success">✓</span> Copied</>
+        <><span className="text-status-success">✓</span> {t('Copied')}</>
       ) : (
         <>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden><rect x="1" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" /><path d="M3 3V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H8" stroke="currentColor" strokeWidth="1.2" /></svg>
-          {label}
+          {label ?? t('Copy')}
         </>
       )}
     </button>
@@ -52,7 +53,8 @@ export function CopyAgentContextButton({ text }: { text: string }) {
 /** Overview header — same chrome, global Skill markdown (zip still lives in Export).
  *  Labelled paste-only: install lives on Docs → Use in code. */
 export function DownloadSkillButton() {
-  return <AIContextButton scope="global" label="Copy page" markdown={buildCopyPageContext} />
+  const { t } = useI18n()
+  return <AIContextButton scope="global" label={t('Copy page')} markdown={buildCopyPageContext} />
 }
 
 // ── Page chrome ──────────────────────────────────────────────────────────────
@@ -165,6 +167,11 @@ export function BlockChrome({ left, children }: { left: ReactNode; children?: Re
 export function ViewToggle({
   view, onChange,
 }: { view: 'preview' | 'code'; onChange: (v: 'preview' | 'code') => void }) {
+  const { t } = useI18n()
+  // The label is now a real word, not the state key under a `capitalize`
+  // class — that class also has to go, or "vista previa" would render as
+  // "Vista Previa" (Spanish and French capitalise only the first word).
+  const label = { preview: t('Preview'), code: t('Code') }
   return (
     <div className="flex items-center gap-1">
       {(['preview', 'code'] as const).map((v) => (
@@ -172,11 +179,11 @@ export function ViewToggle({
           key={v}
           onClick={() => onChange(v)}
           aria-pressed={view === v}
-          className={`px-2.5 py-1 rounded-md text-caption font-medium capitalize transition-colors ${
+          className={`px-2.5 py-1 rounded-md text-caption font-medium transition-colors ${
             view === v ? 'bg-elevated text-fg' : 'text-fg-muted hover:text-fg'
           }`}
         >
-          {v}
+          {label[v]}
         </button>
       ))}
     </div>
@@ -263,6 +270,7 @@ export function ExampleCell({ label, children }: { label: string; children: Reac
  *  mirrors `AgentInstallPanel`'s (aria-pressed + `bg-elevated` active) so the
  *  product's two "how do I install this" surfaces don't drift apart. */
 export function UseItBlock({ useIt }: { useIt: UseIt }) {
+  const { t } = useI18n()
   const [active, setActive] = useState<UseItDestId>('code')
   // Falls back to the first destination rather than rendering an empty pane if
   // a caller ever ships a partial descriptor.
@@ -273,7 +281,7 @@ export function UseItBlock({ useIt }: { useIt: UseIt }) {
     <div className="rounded-xl border border-line overflow-hidden">
       <BlockChrome
         left={
-          <div role="tablist" aria-label="Destination" className="flex items-center gap-1">
+          <div role="tablist" aria-label={t('Destination')} className="flex items-center gap-1">
             {useIt.destinations.map((d) => (
               <button
                 key={d.id}
@@ -284,7 +292,7 @@ export function UseItBlock({ useIt }: { useIt: UseIt }) {
                   d.id === dest.id ? 'bg-elevated text-fg' : 'text-fg-muted hover:text-fg'
                 }`}
               >
-                {d.label}
+                {t(d.label)}
               </button>
             ))}
           </div>
@@ -295,7 +303,7 @@ export function UseItBlock({ useIt }: { useIt: UseIt }) {
       <CodePane code={dest.code} minH={0} />
       {dest.note && (
         <p className="px-4 py-2 text-caption leading-relaxed text-fg-faint border-t border-line break-words">
-          {dest.note}
+          {t(dest.note, dest.noteVars)}
         </p>
       )}
     </div>
@@ -318,12 +326,13 @@ export interface TocEntry { id: string; label: string; sub?: boolean }
 export function OnThisPage({
   entries, scrollRoot,
 }: { entries: TocEntry[]; scrollRoot: React.RefObject<HTMLDivElement | null> }) {
+  const { t } = useI18n()
   const jump = (id: string) => {
     scrollRoot.current?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
   return (
-    <nav aria-label="On this page" className="flex flex-col gap-1">
-      <span className="text-mini uppercase tracking-widest text-fg-faint mb-1">On this page</span>
+    <nav aria-label={t('On this page')} className="flex flex-col gap-1">
+      <span className="text-mini uppercase tracking-widest text-fg-faint mb-1">{t('On this page')}</span>
       {entries.map((entry) => (
         <button
           key={entry.id}

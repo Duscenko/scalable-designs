@@ -15,7 +15,11 @@
 // is the snippet for the variant on screen — which neither half could claim.
 
 import { useState } from 'react'
-import { COMPONENTS, isInFigmaSample, type ComponentDef, type VariantAxis } from '../../../lib/componentCatalogue'
+import {
+  COMPONENTS, COMPONENT_KEYS, FIGMA_SAMPLE_KEYS, isInFigmaSample,
+  type ComponentDef, type VariantAxis,
+} from '../../../lib/componentCatalogue'
+import { useI18n } from '../../../lib/i18n'
 import { agentContextMarkdown } from '../../../lib/agentContext'
 import { PHOSPHOR_LIBRARY } from '../../../lib/iconLibraries'
 import { withAlpha } from '../../../lib/colorUtils'
@@ -145,6 +149,7 @@ function Hero({
    *  Hero never recomputes its own copy. */
   snippet: string
 }) {
+  const { t } = useI18n()
   const [view, setView] = useState<'preview' | 'code'>('preview')
 
   const slots = ICON_SLOTS[def.key]
@@ -180,7 +185,7 @@ function Hero({
             </div>
           }
         >
-          <CopyButton text={snippet} label="Copy snippet" />
+          <CopyButton text={snippet} label={t('Copy snippet')} />
         </BlockChrome>
 
         {view === 'preview' ? (
@@ -191,11 +196,11 @@ function Hero({
             {Specimen ? (
               <Specimen t={tokens} v={values} icons={icons} />
             ) : (
-              <span className="text-xs text-fg-faint">No live preview for this component yet.</span>
+              <span className="text-xs text-fg-faint">{t('No live preview for this component yet.')}</span>
             )}
             {variantCount > 1 && (
               <span className="absolute top-3 right-3 text-mini px-2 py-0.5 rounded-full bg-elevated/80 text-fg-faint border border-line">
-                {variantIndex(def, values)} of {variantCount} variants
+                {t('{index} of {total} variants', { index: variantIndex(def, values), total: variantCount })}
               </span>
             )}
           </div>
@@ -220,18 +225,18 @@ function Hero({
             {slots && (
               <>
                 {def.axes.length > 0 && <div className="border-t border-line my-1" />}
-                <OptionSwitch label="Leading icon" checked={leadingIcon} onChange={onLeadingIconChange} />
-                <OptionSwitch label="Trailing icon" checked={trailingIcon} onChange={onTrailingIconChange} />
+                <OptionSwitch label={t('Leading icon')} checked={leadingIcon} onChange={onLeadingIconChange} />
+                <OptionSwitch label={t('Trailing icon')} checked={trailingIcon} onChange={onTrailingIconChange} />
               </>
             )}
           </div>
           {slots ? (
             <p className="text-mini text-fg-faint leading-relaxed px-1 pt-2">
-              Icons come from <span className="font-medium text-fg-muted">{PHOSPHOR_LIBRARY.label}</span>.
+              {t('Icons come from')} <span className="font-medium text-fg-muted">{PHOSPHOR_LIBRARY.label}</span>.
             </p>
           ) : (
             <p className="text-mini text-fg-faint leading-relaxed px-1 pt-2">
-              Same axes as the Figma variant set the plugin generates.
+              {t('Same axes as the Figma variant set the plugin generates.')}
             </p>
           )}
         </div>
@@ -241,6 +246,7 @@ function Hero({
 }
 // ── Doc sections ─────────────────────────────────────────────────────────────
 function AxisExample({ def, axis, tokens }: { def: ComponentDef; axis: VariantAxis; tokens: PreviewTokens }) {
+  const { t } = useI18n()
   const Specimen = SPECIMENS[def.key]
   const defaults = axisDefaults(def)
   const code = axis.values
@@ -250,9 +256,12 @@ function AxisExample({ def, axis, tokens }: { def: ComponentDef; axis: VariantAx
     <div className="flex flex-col gap-2.5">
       <h4 id={`axis-${axis.name.toLowerCase()}`} className="text-sm font-semibold text-fg scroll-mt-4">{axis.name}</h4>
       <p className="text-xs text-fg-muted leading-relaxed">
-        <code className="font-mono text-caption">{axis.name}</code> has {axis.values.length} option{axis.values.length === 1 ? '' : 's'} —{' '}
-        {axis.values.join(' · ')}. Defaults to <code className="font-mono text-caption">{axis.values[0]}</code>; each option maps 1:1 to
-        the Figma variant axis the plugin generates.
+        <code className="font-mono text-caption">{axis.name}</code>{' '}
+        {axis.values.length === 1
+          ? t('has {count} option —', { count: axis.values.length })
+          : t('has {count} options —', { count: axis.values.length })}{' '}
+        {axis.values.join(' · ')}. {t('Defaults to')} <code className="font-mono text-caption">{axis.values[0]}</code>
+        {t('; each option maps 1:1 to the Figma variant axis the plugin generates.')}
       </p>
       <PreviewCode surface={tokens.surface} code={code}>
         {Specimen
@@ -261,18 +270,19 @@ function AxisExample({ def, axis, tokens }: { def: ComponentDef; axis: VariantAx
                 {Specimen({ t: tokens, v: { ...defaults, [axis.name]: value } })}
               </ExampleCell>
             ))
-          : <span className="text-xs text-fg-faint">No live preview for this component yet.</span>}
+          : <span className="text-xs text-fg-faint">{t('No live preview for this component yet.')}</span>}
       </PreviewCode>
     </div>
   )
 }
 
 function KeyboardTable() {
+  const { t } = useI18n()
   return (
     <div className="rounded-xl border border-line overflow-hidden">
       <div className="grid grid-cols-[100px_1fr] gap-4 px-4 py-2 border-b border-line bg-surface/60 text-mini uppercase tracking-wider text-fg-faint">
-        <span>Key</span>
-        <span>Description</span>
+        <span>{t('Key')}</span>
+        <span>{t('Description')}</span>
       </div>
       <div className="divide-y divide-line">
         {KEYBOARD_ROWS.map((row) => (
@@ -280,7 +290,7 @@ function KeyboardTable() {
             <kbd className="justify-self-start text-mini font-mono px-1.5 py-0.5 rounded border border-line-strong bg-elevated text-fg-muted">
               {row.key}
             </kbd>
-            <span className="text-xs text-fg-muted leading-relaxed">{row.description}</span>
+            <span className="text-xs text-fg-muted leading-relaxed">{t(row.description)}</span>
           </div>
         ))}
       </div>
@@ -291,12 +301,13 @@ function KeyboardTable() {
 /** The one props table. The catalogue's own 2-column variant is gone: same
  *  data, fewer columns, so keeping it only created a place to drift. */
 function ApiPropsTable({ def }: { def: ComponentDef }) {
+  const { t } = useI18n()
   return (
     <div className="rounded-xl border border-line overflow-hidden">
       <div className="grid grid-cols-[1fr_1fr_1.6fr] gap-4 px-4 py-2 border-b border-line bg-surface/60 text-mini uppercase tracking-wider text-fg-faint">
-        <span>Prop</span>
-        <span>Type</span>
-        <span>Description</span>
+        <span>{t('Prop')}</span>
+        <span>{t('Type')}</span>
+        <span>{t('Description')}</span>
       </div>
       <div className="divide-y divide-line">
         {def.props.map((prop) => (
@@ -312,12 +323,13 @@ function ApiPropsTable({ def }: { def: ComponentDef }) {
 }
 
 function ApiVariantsTable({ def }: { def: ComponentDef }) {
+  const { t } = useI18n()
   return (
     <div className="rounded-xl border border-line overflow-hidden">
       <div className="grid grid-cols-[1fr_2fr_1fr] gap-4 px-4 py-2 border-b border-line bg-surface/60 text-mini uppercase tracking-wider text-fg-faint">
-        <span>Variant</span>
-        <span>Options</span>
-        <span>Default</span>
+        <span>{t('Variant')}</span>
+        <span>{t('Options')}</span>
+        <span>{t('Default')}</span>
       </div>
       <div className="divide-y divide-line">
         {def.axes.map((axis) => (
@@ -339,6 +351,7 @@ function ApiVariantsTable({ def }: { def: ComponentDef }) {
 }
 
 export function FigmaShipList({ component }: { component: ComponentDef }) {
+  const { t } = useI18n()
   const variantCount = component.axes.reduce((n, a) => n * a.values.length, 1)
   // Every key ships a full spec — props, axes, tokens, accessibility — into
   // tokens.json and the agent bundle regardless of this check. This block is
@@ -349,7 +362,11 @@ export function FigmaShipList({ component }: { component: ComponentDef }) {
       <div className="rounded-xl border border-dashed border-line bg-surface/40 p-4 flex items-center gap-2.5">
         <FigmaGlyph className="text-fg-faint flex-shrink-0" />
         <p className="text-caption text-fg-faint leading-relaxed">
-          Not rendered in Figma yet — building all 58 specs as real variants locks the file on import, so today this one ships as a full spec (props, tokens, accessibility) in <code className="font-mono">tokens.json</code> and your coding agent's context, not as a component node in the file.
+          {/* Both counts are DERIVED. They were hardcoded "58" and "9" —
+              correct on the day they were typed and one catalogue entry away
+              from being a lie, which is the same drift that left the About
+              page claiming 39 semantic roles against a real 64. */}
+          {t("Not rendered in Figma yet — building all {count} specs as real variants locks the file on import, so today this one ships as a full spec (props, tokens, accessibility) in", { count: COMPONENT_KEYS.length })} <code className="font-mono">tokens.json</code> {t("and your coding agent's context, not as a component node in the file.")}
         </p>
       </div>
     )
@@ -358,14 +375,16 @@ export function FigmaShipList({ component }: { component: ComponentDef }) {
     <div className="rounded-xl border border-line bg-surface/40 p-4 flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <FigmaGlyph className="text-fg-muted" />
-        <p className="text-xs font-semibold text-fg">Ships in Figma</p>
+        <p className="text-xs font-semibold text-fg">{t('Ships in Figma')}</p>
         <span className="text-mini text-fg-faint ml-auto">
-          {component.figmaSets.length} {component.figmaSets.length === 1 ? 'set' : 'sets'}
-          {variantCount > 1 && ` · ${variantCount} variants`}
+          {component.figmaSets.length === 1
+            ? t('{count} set', { count: component.figmaSets.length })
+            : t('{count} sets', { count: component.figmaSets.length })}
+          {variantCount > 1 && ` · ${t('{count} variants', { count: variantCount })}`}
         </span>
       </div>
       <p className="text-caption text-fg-faint leading-relaxed">
-        One of the 9 components on the '⬡ Components Overview' sample sheet every import builds — every fill, stroke and radius bound to your variables (component → semantic → primitive):
+        {t("One of the {count} components on the '⬡ Components Overview' sample sheet every import builds — every fill, stroke and radius bound to your variables (component → semantic → primitive):", { count: FIGMA_SAMPLE_KEYS.length })}
       </p>
       <div className="flex flex-wrap gap-1.5">
         {component.figmaSets.map((s) => (
@@ -391,11 +410,12 @@ function FigmaGlyph({ className }: { className?: string }) {
 }
 
 function RelatedComponents({ def, onOpen }: { def: ComponentDef; onOpen: (c: ComponentDef) => void }) {
+  const { t } = useI18n()
   const related = COMPONENTS.filter((c) => c.category === def.category && c.key !== def.key).slice(0, 4)
   if (!related.length) return null
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading id="related">Related Components</SectionHeading>
+      <SectionHeading id="related">{t('Related Components')}</SectionHeading>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {related.map((c) => (
           <button
@@ -404,7 +424,7 @@ function RelatedComponents({ def, onOpen }: { def: ComponentDef; onOpen: (c: Com
             className="text-left rounded-xl border border-line bg-surface/40 p-4 hover:border-line-strong transition-colors"
           >
             <p className="text-xs font-semibold text-fg">{c.label}</p>
-            <p className="text-caption text-fg-faint leading-relaxed mt-1 line-clamp-2">{c.description}</p>
+            <p className="text-caption text-fg-faint leading-relaxed mt-1 line-clamp-2">{t(c.description)}</p>
           </button>
         ))}
       </div>
@@ -413,21 +433,26 @@ function RelatedComponents({ def, onOpen }: { def: ComponentDef; onOpen: (c: Com
 }
 // ── "On this page" TOC (right rail) ──────────────────────────────────────────
 
-export function componentToc(def: ComponentDef): TocEntry[] {
+type Translate = (source: string, vars?: Record<string, string | number>) => string
+
+export function componentToc(def: ComponentDef, t: Translate = (s) => s): TocEntry[] {
   const entries: TocEntry[] = [
-    { id: 'description', label: 'Description' },
-    { id: USE_IT_ID, label: USE_IT_TITLE },
-    { id: 'usage', label: 'Usage' },
+    { id: 'description', label: t('Description') },
+    { id: USE_IT_ID, label: t(USE_IT_TITLE) },
+    { id: 'usage', label: t('Usage') },
   ]
   if (def.axes.length) {
-    entries.push({ id: 'examples', label: 'Examples' })
+    entries.push({ id: 'examples', label: t('Examples') })
+    // Axis names are the plugin's own variant-set labels (`Color`, `Size`,
+    // `State`) — mirrored from Figma, so they stay verbatim, the same rule
+    // component display names follow.
     def.axes.forEach((a) => entries.push({ id: `axis-${a.name.toLowerCase()}`, label: a.name, sub: true }))
   }
   entries.push(
-    { id: 'accessibility', label: 'Accessibility' },
-    { id: 'figma', label: 'Figma' },
-    { id: 'related', label: 'Related Components' },
-    { id: 'api', label: 'API Reference' },
+    { id: 'accessibility', label: t('Accessibility') },
+    { id: 'figma', label: t('Figma') },
+    { id: 'related', label: t('Related Components') },
+    { id: 'api', label: t('API Reference') },
   )
   return entries
 }
@@ -436,6 +461,7 @@ export function componentToc(def: ComponentDef): TocEntry[] {
 export function ComponentArticle({
   def, tokens, onOpen,
 }: { def: ComponentDef; tokens: PreviewTokens; onOpen: (c: ComponentDef) => void }) {
+  const { t } = useI18n()
   // The live playground's own selection — OWNED here, not inside `Hero` (see
   // that component's note). This is what makes "the snippet you copy is the
   // snippet on screen" actually true: every downstream consumer of
@@ -464,8 +490,8 @@ export function ComponentArticle({
   return (
     <div className="flex flex-col gap-8">
       <DocHeader
-        section="Components"
-        kind={def.category}
+        section={t('Components')}
+        kind={t(def.category)}
         title={def.label}
         actions={
           <CopyAgentContextButton
@@ -474,7 +500,10 @@ export function ComponentArticle({
         }
       />
 
-      <DocTitle title={def.label} eyebrow={def.category} lead={def.description} />
+      {/* `def.label` is NOT translated: it is the plugin's own component name
+          and the key a designer matches against the Figma variant set. Its
+          category and prose are ours, so they are. */}
+      <DocTitle title={def.label} eyebrow={t(def.category)} lead={t(def.description)} />
 
       {/* Hero — live playground + code. Axis/icon state lives in THIS
           component now (see above), reset per component the same way every
@@ -498,20 +527,20 @@ export function ComponentArticle({
           carries, so the two page kinds answer "how do I consume this" the
           same way. Sits before Usage for the reason Create UI puts
           Installation there: you reach for it before the prose. */}
-      <DocSection id={USE_IT_ID} title={USE_IT_TITLE} description={USE_IT_LEAD}>
+      <DocSection id={USE_IT_ID} title={t(USE_IT_TITLE)} description={t(USE_IT_LEAD)}>
         <UseItBlock useIt={useIt} />
       </DocSection>
 
       {/* Usage — the "when to use" prose the catalogue showed in a card, plus
           the import snippet Documentation showed. Same section, one place. */}
-      <DocSection id="usage" title="Usage" description={def.usage}>
+      <DocSection id="usage" title={t('Usage')} description={t(def.usage)}>
         <CodeBlock file={fileNameFor(def)} code={usageCode} />
       </DocSection>
 
       {/* Examples — one block per variant axis */}
       {def.axes.length > 0 && (
         <section className="flex flex-col gap-5">
-          <SectionHeading id="examples">Examples</SectionHeading>
+          <SectionHeading id="examples">{t('Examples')}</SectionHeading>
           {def.axes.map((axis) => (
             <AxisExample key={axis.name} def={def} axis={axis} tokens={tokens} />
           ))}
@@ -520,14 +549,14 @@ export function ComponentArticle({
 
       {/* Accessibility */}
       <section className="flex flex-col gap-2.5">
-        <SectionHeading id="accessibility">Accessibility</SectionHeading>
+        <SectionHeading id="accessibility">{t('Accessibility')}</SectionHeading>
         {INTERACTIVE_CATEGORIES.has(def.category) && <KeyboardTable />}
-        <p className="text-ui text-fg-muted leading-relaxed">{def.accessibility}</p>
+        <p className="text-ui text-fg-muted leading-relaxed">{t(def.accessibility)}</p>
       </section>
 
       {/* Ships in Figma */}
       <section className="flex flex-col gap-2.5">
-        <SectionHeading id="figma">Figma</SectionHeading>
+        <SectionHeading id="figma">{t('Figma')}</SectionHeading>
         <FigmaShipList component={def} />
       </section>
 
@@ -536,16 +565,16 @@ export function ComponentArticle({
 
       {/* API Reference */}
       <section className="flex flex-col gap-3">
-        <SectionHeading id="api">API Reference</SectionHeading>
+        <SectionHeading id="api">{t('API Reference')}</SectionHeading>
         {def.props.length > 0 && (
           <>
-            <p className="text-caption uppercase tracking-wider text-fg-faint">Props</p>
+            <p className="text-caption uppercase tracking-wider text-fg-faint">{t('Props')}</p>
             <ApiPropsTable def={def} />
           </>
         )}
         {def.axes.length > 0 && (
           <>
-            <p className="text-caption uppercase tracking-wider text-fg-faint mt-1">Variants</p>
+            <p className="text-caption uppercase tracking-wider text-fg-faint mt-1">{t('Variants')}</p>
             <ApiVariantsTable def={def} />
           </>
         )}

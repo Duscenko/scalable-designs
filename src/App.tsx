@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useI18n } from './lib/i18n'
 import Configurator from './pages/Configurator'
 import { AboutScaffold } from './components/configurator/AboutMenu'
 import { ToastHost } from './components/ui/Toast'
@@ -18,11 +19,12 @@ import { ToastHost } from './components/ui/Toast'
 // shell. `AboutScaffold` renders the SAME `SECTIONS` array here — see that
 // component for why it also backs the `/about` route below.
 function DesktopOnlyNotice() {
+  const { t } = useI18n()
   return (
     <AboutScaffold
       wrapperClassName="md:hidden"
-      heading="Optimized for desktop"
-      subheading="Escala Tokens is a design token workspace built for a laptop or desktop screen. Open it there to configure and export your system."
+      heading={t('Optimized for desktop')}
+      subheading={t('Escala Tokens is a design token workspace built for a laptop or desktop screen. Open it there to configure and export your system.')}
     />
   )
 }
@@ -34,27 +36,35 @@ function DesktopOnlyNotice() {
 // infrastructure. Content is 100% `AboutScaffold`/`SECTIONS` — nothing here
 // is authored twice.
 function AboutPage() {
+  const { t } = useI18n()
+
+  // `[t]` rather than `[]`: this is the one crawlable page in the app, and a
+  // title left in English while the body renders in Spanish would misdescribe
+  // it to both a reader and a crawler (`I18nProvider` already sets
+  // `documentElement.lang`). React runs the cleanup before re-running the
+  // effect, so `prevTitle` still captures the document's real original title
+  // on a locale switch rather than the one this effect just wrote.
   useEffect(() => {
     const prevTitle = document.title
-    document.title = 'Escala Tokens: Define your foundations before you prompt'
+    document.title = t('Escala Tokens: Define your foundations before you prompt')
     const meta = document.querySelector('meta[name="description"]')
     const prevDescription = meta?.getAttribute('content') ?? null
     meta?.setAttribute(
       'content',
-      'Define your palette, type scale, spacing and radius once, then hand them to Figma, your code and any AI agent as one contract, before you start prompting.',
+      t('Define your palette, type scale, spacing and radius once, then hand them to Figma, your code and any AI agent as one contract, before you start prompting.'),
     )
     return () => {
       document.title = prevTitle
       if (meta && prevDescription !== null) meta.setAttribute('content', prevDescription)
     }
-  }, [])
+  }, [t])
 
   return (
     <AboutScaffold
-      heading="Define your foundations before you prompt"
-      subheading="Escala is where you set your design tokens once, then hand them to Figma, your code and any AI agent as one contract, so nothing invents its own colors, spacing or radius."
+      heading={t('Define your foundations before you prompt')}
+      subheading={t('Escala is where you set your design tokens once, then hand them to Figma, your code and any AI agent as one contract, so nothing invents its own colors, spacing or radius.')}
       ctaHref="/"
-      ctaLabel="Open the configurator"
+      ctaLabel={t('Open the configurator')}
     />
   )
 }

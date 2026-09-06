@@ -66,12 +66,12 @@ export default function DocsView({
   const toc = guide
     ? getStartedToc(activeFoundationKey, t)
     : isChangelog
-      ? changelogToc()
+      ? changelogToc(t)
       : isFaq
         ? faqToc(t)
         : doc
-          ? foundationToc(doc)
-          : overviewToc()
+          ? foundationToc(doc, t)
+          : overviewToc(t)
 
   return (
     <div className="h-full w-full min-w-0 flex min-h-0 overflow-hidden">

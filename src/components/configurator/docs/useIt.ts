@@ -32,8 +32,13 @@ export interface UseItDest {
   /** The snippet shown in the pane — and copied VERBATIM. Never a summary of
    *  something longer that the copy button would silently expand. */
   code: string
-  /** One line under the pane: the naming convention, or the precondition. */
+  /** One line under the pane: the naming convention, or the precondition.
+   *  Rendered through `t(note, noteVars)`, so it must be a STABLE source
+   *  string — any live value goes in `noteVars` as a `{placeholder}`, never
+   *  interpolated into the string itself, or every distinct value would be a
+   *  separate dictionary key that no translation could ever match. */
   note?: string
+  noteVars?: Record<string, string | number>
 }
 
 export interface UseIt {
@@ -87,7 +92,8 @@ export function useItForFoundation(doc: FoundationDoc): UseIt {
         id: 'code',
         label: 'Code',
         code: css,
-        note: `variables.css: ${doc.ships.css}   ·   tokens.json: ${doc.ships.json}`,
+        note: 'variables.css: {css}   ·   tokens.json: {json}',
+        noteVars: { css: doc.ships.css, json: doc.ships.json },
       },
       {
         id: 'ai',
@@ -127,14 +133,17 @@ export function useItForComponent(def: ComponentDef, snippet: string): UseIt {
         label: 'Figma',
         code: figma,
         note: def.figmaSets.length
-          ? `Component set${def.figmaSets.length === 1 ? '' : 's'} the plugin unlocks for this key.`
+          ? def.figmaSets.length === 1
+            ? 'Component set the plugin unlocks for this key.'
+            : 'Component sets the plugin unlocks for this key.'
           : 'The plugin is the source of truth for the catalogue — this entry is spec-only for now.',
       },
       {
         id: 'code',
         label: 'Code',
         code: snippet,
-        note: `Styled from your semantic roles — no hardcoded values. Catalogue key: ${def.key}`,
+        note: 'Styled from your semantic roles — no hardcoded values. Catalogue key: {key}',
+        noteVars: { key: def.key },
       },
       {
         id: 'ai',

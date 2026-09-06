@@ -49,10 +49,27 @@ export const ARCHITECTURE_OPTIONS: {
   {
     key: 'categorical',
     label: 'Categorical Semantic',
-    desc: 'Lightweight — 39 curated roles, light/dark built in.',
-    tip: 'A minimal, fixed catalogue of 39 roles grouped by function — Content, Action, Surface, Status, Border — with the light and dark primitive reference inside each token. Best when you want a lean system that tooling walks as a token tree (DTCG, Style Dictionary, Figma modes).',
+    // DERIVED, never a literal. Both strings carried a hardcoded "39" long
+    // after the table had grown past 60 — invisible because the picker UI they
+    // were written for no longer exists (`architectureLabel` is the only
+    // consumer of this array, and it reads `label`). A getter is evaluated on
+    // access, not at module init, so it can reach `CATEGORICAL_ROLES` below
+    // without tripping its temporal dead zone.
+    get desc() {
+      return `Lightweight — ${categoricalRoleCount()} curated roles, light/dark built in.`
+    },
+    get tip() {
+      return `A minimal, fixed catalogue of ${categoricalRoleCount()} roles grouped by function — Content, Action, Surface, Status, Border — with the light and dark primitive reference inside each token. Best when you want a lean system that tooling walks as a token tree (DTCG, Style Dictionary, Figma modes).`
+    },
   },
 ]
+
+/** How many roles the Categorical projection actually ships. Read it; never
+ *  restate the number in prose — the About page and this picker both drifted
+ *  from it once already. */
+export function categoricalRoleCount(): number {
+  return CATEGORICAL_ROLES.length
+}
 
 export function architectureLabel(kind: SemanticArchitecture): string {
   return ARCHITECTURE_OPTIONS.find((o) => o.key === kind)?.label ?? kind
