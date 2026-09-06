@@ -204,7 +204,7 @@ export default function IntegrationStatusRail({
                   version={PLUGIN_VERSION}
                   updateAvailable={pluginUpdateAvailable}
                   onOpenInstall={onOpenPluginDownload}
-                  info="Paste ID to plugin in Live Sync. This page is the resume link. File and modes travel in the published payload."
+                  info="Paste ID to plugin in Live Sync — that is the key. This page holds the themes in this window. File and modes travel in the published payload."
                 />
                 </div>
               ) : null}

@@ -44,10 +44,8 @@ const FIXTURE: TokenJSON = {
 }
 
 describe('agentInstall recipes', () => {
-  // The apex is not a style choice: the served certificate carries a single SAN
-  // (`DNS:escalatokens.com`), so every strict TLS client — which is every MCP
-  // client — fails the handshake on `www.` before any JSON-RPC. This test used
-  // to assert `www.` and was therefore pinning a config that could not connect.
+  // MCP recipes stay on the apex so a generated config never depends on a
+  // www→apex redirect (POST is not always followed). Both hosts have certs.
   it('defaults the public origin to the apex host, not www and not a Vercel preview host', () => {
     expect(DEFAULT_PUBLISH_ORIGIN).toBe('https://escalatokens.com')
     expect(mcpEndpoint(DEFAULT_PUBLISH_ORIGIN)).toBe('https://escalatokens.com/api/mcp')
@@ -60,7 +58,7 @@ describe('agentInstall recipes', () => {
     expect(mcpEndpoint('https://escalatokens.com/')).toBe('https://escalatokens.com/api/mcp')
   })
 
-  it('rewrites www to the apex — that host fails TLS on every MCP client', () => {
+  it('rewrites www to the apex so MCP recipes stay on one host', () => {
     expect(mcpEndpoint('https://www.escalatokens.com')).toBe('https://escalatokens.com/api/mcp')
     expect(mcpEndpoint('https://www.escalatokens.com/')).toBe('https://escalatokens.com/api/mcp')
     expect(originFromMcpUrl('https://www.escalatokens.com/api/mcp')).toBe('https://escalatokens.com')
@@ -134,7 +132,7 @@ describe('agentInstall recipes', () => {
     expect(prompt).toContain('https://escalatokens.com/api/mcp')
     expect(prompt).toContain('get_tokens with project "hola"')
     expect(prompt).toContain('resolve_token with the same project "hola"')
-    expect(prompt).toContain('Never use www.escalatokens.com')
+    expect(prompt).toContain('not www.escalatokens.com')
     expect(prompt).not.toContain('www.escalatokens.com/api')
     const claude = claudeChatUrl(prompt)
     expect(claude.startsWith('https://claude.ai/new?q=')).toBe(true)

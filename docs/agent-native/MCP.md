@@ -31,7 +31,7 @@ Read-only Model Context Protocol endpoint. Does **not** replace `/api/tokens`.
 }
 ```
 
-Public, no auth (same as `/api/tokens`). CORS `*`. Apex host only — `www.escalatokens.com` fails TLS (certificate SAN is `DNS:escalatokens.com`).
+Public, no auth (same as `/api/tokens`). CORS `*`. Recipes use the apex (`escalatokens.com`) so MCP never depends on a www redirect. Both apex and `www` have valid certificates.
 
 Human install (About / Docs → Use in code / Export wizard): paste the JSON above into `.cursor/mcp.json`, or run `claude mcp add --transport http --scope project escala-tokens https://escalatokens.com/api/mcp`. VS Code uses `.vscode/mcp.json` with key `servers`, not `mcpServers`. `npx @escala/cli mcp init` / `skill --from <slug>` remain as an offline fallback once the package is on npm. Do not invent a second MCP URL. Token tools (`get_tokens`, `resolve_token`, `list_icons`) require `project`.
 

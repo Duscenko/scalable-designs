@@ -215,7 +215,7 @@ function SyncUrlInfo({ deployed }: { deployed: boolean }) {
   return (
     <SyncInfoTip label={t('About ID to plugin')}>
       <p>{t('Paste ID to plugin in Live Sync, then Sync now.')}</p>
-      <p className="mt-2">{t('Changes only when you rename the file. This page is the resume link.')}</p>
+      <p className="mt-2">{t('Changes only when you rename the file. This page holds the themes in this window — it is not the key.')}</p>
       {!deployed && (
         <p className="mt-2">
           {t('Live publish needs the deployed app — on localhost, copy the production URL or use Import with tokens.json.')}
@@ -384,41 +384,6 @@ export default function FigmaSyncView({
       )}
 
       <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface/50 p-5">
-        {pageUrl ? (
-          <div className="flex flex-col gap-1.5">
-            <p id={pageLabelId} className="text-mini font-semibold uppercase tracking-[0.12em] text-fg-faint">{t('This page')}</p>
-            <div
-              className={`flex min-w-0 items-center gap-2 border border-line bg-app/60 px-3 ${SYNC_CONTROL}`}
-            >
-              <code
-                className="pointer-events-none min-w-0 flex-1 cursor-default select-none truncate font-mono text-caption text-fg-muted outline-none"
-                title={pageUrl}
-                aria-labelledby={pageLabelId}
-                aria-readonly="true"
-              >
-                {pageUrl}
-              </code>
-              <SyncInfoTip label={t('About this page')}>
-                <p>{t('Resume this section if you close the tab. Each window has its own section id.')}</p>
-              </SyncInfoTip>
-              <button
-                type="button"
-                onClick={() => copyUrl('page', pageUrl)}
-                aria-label={copied === 'page' ? t('Page link copied') : t('Copy page link')}
-                title={copied === 'page' ? t('Copied') : t('Copy')}
-                className={`grid h-6 w-6 flex-shrink-0 place-items-center rounded-md text-fg-faint transition-colors hover:bg-fg/8 hover:text-fg ${SYNC_FOCUS}`}
-              >
-                {copied === 'page' ? (
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="text-status-success" aria-hidden>
-                    <path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ) : (
-                  <CopyGlyph size={13} />
-                )}
-              </button>
-            </div>
-          </div>
-        ) : null}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="figma-file-name" className="text-mini font-semibold uppercase tracking-[0.12em] text-fg-faint">
@@ -505,6 +470,47 @@ export default function FigmaSyncView({
           </p>
           </div>
         </div>
+        {/* Resume readout — last, and not an input well. File name + ID to
+            plugin are the work; this URL only reopens the themes in this window. */}
+        {pageUrl ? (
+          <div className="flex flex-col gap-1 border-t border-line pt-4">
+            <p id={pageLabelId} className="text-mini font-semibold uppercase tracking-[0.12em] text-fg-faint">{t('This page')}</p>
+            <div
+              role="group"
+              aria-labelledby={pageLabelId}
+              className="flex min-w-0 items-center gap-1.5 rounded-md px-2 h-8 bg-fg/[0.03]"
+            >
+              <code
+                className="pointer-events-none min-w-0 flex-1 cursor-default select-none truncate font-mono text-caption text-fg-faint outline-none"
+                title={pageUrl}
+                aria-readonly="true"
+              >
+                {pageUrl}
+              </code>
+              <SyncInfoTip label={t('About this page')}>
+                <p>{t('This URL reopens these themes. ID to plugin is the key you paste in Live Sync.')}</p>
+              </SyncInfoTip>
+              <button
+                type="button"
+                onClick={() => copyUrl('page', pageUrl)}
+                aria-label={copied === 'page' ? t('Page link copied') : t('Copy page link')}
+                title={copied === 'page' ? t('Copied') : t('Copy')}
+                className={`grid h-6 w-6 flex-shrink-0 place-items-center rounded-md text-fg-faint transition-colors hover:bg-fg/8 hover:text-fg ${SYNC_FOCUS}`}
+              >
+                {copied === 'page' ? (
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="text-status-success" aria-hidden>
+                    <path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  <CopyGlyph size={13} />
+                )}
+              </button>
+            </div>
+            <p className="text-caption leading-relaxed text-fg-faint">
+              {t('Themes in this window. ID to plugin is the key.')}
+            </p>
+          </div>
+        ) : null}
         {publishState === 'publishing' && (
           <div className="flex items-center gap-1.5 text-caption">
             <span className="h-1.5 w-1.5 rounded-full bg-status-warning-solid animate-pulse" />

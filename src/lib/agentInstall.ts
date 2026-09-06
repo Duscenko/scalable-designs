@@ -15,23 +15,17 @@ export const CLI_PACKAGE = '@escala/cli'
 /**
  * Public site. Vercel is only the host — never put *.vercel.app in user-facing copy.
  *
- * APEX, not `www.` — and that is load-bearing, not cosmetic. The certificate
- * Vercel serves carries a single SAN (`DNS:escalatokens.com`), so
- * `https://www.escalatokens.com` fails TLS verification for any strict client;
- * `www` is only a 307 you can reach by disabling cert checks. Every MCP client
- * (Cursor, Claude Code, VS Code) verifies, so a generated config pointing at
- * `www` dies at the handshake, before a single JSON-RPC byte. Pointing at a
- * redirecting host is fragile even with a valid cert: a 307 on POST is only
- * followed by clients that follow redirects at all. Both hosts are already in
- * `publishTrust.KNOWN_HOSTS`, so publishing is unaffected either way.
+ * APEX, not `www.` — MCP recipes stay on one host. Both `escalatokens.com`
+ * and `www.escalatokens.com` have valid certificates now; a 307 on POST is
+ * still only followed by some clients, so generated MCP configs never point
+ * at `www`. Both hosts are in `publishTrust.KNOWN_HOSTS`.
  */
 export const DEFAULT_PUBLISH_ORIGIN = 'https://escalatokens.com'
 
 /**
- * Host that MCP clients may actually open. `www.escalatokens.com` fails TLS
- * (the certificate SAN is only `DNS:escalatokens.com`) — every Cursor / Claude
- * / VS Code client verifies, so a generated config pointing at `www` dies at
- * the handshake. Preview hosts and the apex pass through unchanged.
+ * Host that MCP clients should open. `www` is rewritten to the apex so a
+ * generated config never depends on a redirect. Preview hosts and the apex
+ * pass through unchanged.
  */
 export function mcpOrigin(origin: string): string {
   const raw = (origin || '').trim()
@@ -126,7 +120,7 @@ export function agentSetupPrompt(
   const project = slug?.trim() || 'YOUR_PUBLISHED_SLUG'
   return [
     'Set up my Escala design system in this repo.',
-    `1. Add the MCP server named ${MCP_SERVER_NAME}. ${clientAddInstructions(client, origin, url)} The endpoint is streamable HTTP with no auth. Never use www.escalatokens.com — the certificate only covers the apex. Restart the editor after adding.`,
+    `1. Add the MCP server named ${MCP_SERVER_NAME}. ${clientAddInstructions(client, origin, url)} The endpoint is streamable HTTP with no auth. Use the apex URL, not www.escalatokens.com — MCP recipes stay on one host. Restart the editor after adding.`,
     `2. Call get_tokens with project "${project}". If the tool says nothing is published, tell me to Sync from the configurator. Do not invent tokens.`,
     `3. From now on every colour, size and radius goes through resolve_token with the same project "${project}" — never a hex or a px. resolve_token requires project. Then run check_contrast on the resolved hexes before pairing an ink with a fill.`,
   ].join('\n')

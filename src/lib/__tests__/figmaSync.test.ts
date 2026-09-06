@@ -33,7 +33,7 @@ describe('publishOrigin', () => {
     expect(publishOrigin()).toBe('https://escala-tokens-git-branch.vercel.app')
   })
 
-  it('rewrites www to the apex — that host fails TLS for MCP and Figma fetch', () => {
+  it('rewrites www to the apex so MCP and Figma fetch stay on one host', () => {
     withOrigin('https://www.escalatokens.com')
     expect(publishOrigin()).toBe(DEFAULT_PUBLISH_ORIGIN)
   })

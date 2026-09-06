@@ -43,10 +43,9 @@ describe('.mcp.json', () => {
     expect(config.mcpServers?.[MCP_SERVER_NAME]?.type).toBe('http')
   })
 
-  it('uses the apex host, because the certificate covers only the apex', () => {
-    // `www.escalatokens.com` fails TLS verification for any strict client, and
-    // every MCP client verifies. This is the one substitution that looks
-    // harmless and kills the connection outright.
+  it('uses the apex host, so MCP never depends on a www redirect', () => {
+    // Both hosts have certificates. Recipes still pin the apex — a 307 on
+    // POST is only followed by some clients.
     const url = config.mcpServers?.[MCP_SERVER_NAME]?.url ?? ''
     expect(url.startsWith('https://')).toBe(true)
     expect(url).not.toContain('www.')
