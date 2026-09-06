@@ -4154,6 +4154,38 @@ interface ComponentDef {
 - `publishTokens()` POSTs `generateTokenJSON()` to the scoped endpoint and records `figmaLastPublishAt`. Used by the explicit manual request owned by **`Configurator`** (Workspace settings' **Sync now** or `FigmaSyncView`'s **Sync now** button) and the auto-sync subscription. Opening details alone never publishes; the download screen has no publish call at all.
 - `useAutoFigmaSync()` (mounted in `Configurator.tsx`): while `autoSyncFigma` is on, debounce-republishes ~1.5s after edits stop. The change signal is the JSON of `generateTokenJSON()`, so the `figmaLastPublishAt` write can't loop. Toggle lives in `FigmaSyncView`.
 
+> **This repo consumes its own MCP server — `.mcp.json` at the root wires
+> `escala-tokens` → `https://escalatokens.com/api/mcp` into Claude Code.** The
+> product publishes an MCP server whose whole purpose is that an agent resolves
+> real tokens instead of inventing hex; the repo not using it was the one place
+> that claim went untested. Six tools: `get_tokens`, `resolve_token`,
+> `list_components`, `get_component`, `list_icons`, `check_contrast`
+> (`lib/agentAccess/types.ts`).
+> - **THE RULE: the MCP reads the PUBLISHED BLOB, not the editor.** Every
+>   `project`-taking tool answers from the last `POST /api/tokens`. So a token
+>   you just edited will NOT show up until someone hits **Sync now** — that is a
+>   missing publish, not a bug, and the server says so itself: an unknown role
+>   comes back with "the published system may predate it: re-publish from the
+>   configurator". Measured 2026-09-06, the `escala` slug was serving
+>   `schemaVersion 6` with **39 roles** against a codebase at **64** — i.e. no
+>   alpha layer, no `status.*.border`, and no `border.control`/`border.default`
+>   split. Worse than the absent roles are the CHANGED ones: `brandSolidPair`
+>   and `uiBoundaryRef` moved `action.primary.*` and `border.focus`, so a stale
+>   Blob hands back the values from *before* those accessibility fixes — exactly
+>   the failure the `AgentInstallPanel` note above describes. **Check
+>   `schemaVersion` before trusting a resolved value.**
+> - **The two strings in `.mcp.json` are NOT hand-maintained.** They must equal
+>   `MCP_SERVER_NAME` and `mcpEndpoint(DEFAULT_PUBLISH_ORIGIN)` from
+>   `lib/agentInstall.ts` — the same pair `mcpClaudeAddCommand()` prints to
+>   users in Docs, so the repo's own config can't disagree with what the product
+>   tells everyone else. `__tests__/mcpConfig.test.ts` asserts it, including
+>   that the host is the **apex**: the certificate carries only
+>   `DNS:escalatokens.com`, so a `www.` URL dies at the TLS handshake before a
+>   single JSON-RPC byte and reads as "the MCP is broken".
+> - Publishing needs the per-slug claim in the publisher's own `localStorage`
+>   (`publishTrust.claimStorageKey`), so **an agent cannot re-publish for you** —
+>   only the person with the browser that first claimed the slug can.
+
 ---
 
 ## Figma Plugin
