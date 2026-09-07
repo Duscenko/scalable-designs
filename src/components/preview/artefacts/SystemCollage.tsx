@@ -41,8 +41,6 @@ const inspectable = (key: string) => {
 }
 
 const Input = inspectable('Input')
-const Select = inspectable('Select')
-const Slider = inspectable('Slider')
 const SocialLogin = inspectable('SocialLoginButton')
 const Card = inspectable('Card')
 const Avatar = inspectable('Avatar')
@@ -88,8 +86,8 @@ const MASONRY_ROW = 4
 const gap = (t: PreviewTokens, role: string, fb: string) => spacingRoleOf(t, role, fb)
 
 /** Same icon library + slot contract as Theme Preview · Components. */
-function catalogueIcons(t: PreviewTokens): IconOpts {
-  return { prefix: t.iconPrefix ?? 'phosphor', leading: true, trailing: false }
+function catalogueIcons(t: PreviewTokens, leadingConcept?: IconOpts['leadingConcept']): IconOpts {
+  return { prefix: t.iconPrefix ?? 'phosphor', leading: true, trailing: false, leadingConcept }
 }
 
 function px(value: string): number {
@@ -273,9 +271,9 @@ export function SystemCollage({
   const appearanceAt = (index: number) => tileAppearances[index] ?? 'light'
   const muted = (index: number) => tile(index).fgMuted || '#717680'
   const handle = `@${projectName.replace(/\s+/g, '_').toLowerCase()}`
-  const gutter = gap(tile(0), 'gap-control', '8px')
-  const wellLg = sizeRoleOf(tile(0), 'control', '40px')
-  const wellSm = sizeRoleOf(tile(0), 'compact', '32px')
+  const gutter = gap(tile(2), 'gap-control', '8px')
+  const wellLg = sizeRoleOf(tile(2), 'control', '40px')
+  const wellSm = sizeRoleOf(tile(2), 'compact', '32px')
 
   return (
     <div
@@ -293,33 +291,6 @@ export function SystemCollage({
         justifyContent: 'center',
       }}
     >
-      <ScaledModule
-        t={tile(0)}
-        appearance={appearanceAt(0)}
-        style={{ gap: gap(tile(0), 'gap-group', '16px') }}
-      >
-        <div className="flex w-full min-w-0 flex-col" style={{ gap: gap(tile(0), 'gap-group', '16px') }}>
-          <Input t={tile(0)} v={{ Type: 'E-Mail', State: 'Filled', Size: 'SM' }} w="100%" />
-          <div className="flex w-full min-w-0 flex-col" style={{ gap: gap(tile(0), 'gap-tight', '4px') }}>
-            <span style={{ ...typeStyleOf(tile(0), 'label'), color: tile(0).neutralText }}>{translate('State')}</span>
-            <Select t={tile(0)} v={{ Size: 'SM' }} w="100%" />
-          </div>
-        </div>
-        <div
-          className="flex w-full min-w-0 flex-col"
-          style={{
-            gap: gap(tile(0), 'gap-control', '8px'),
-            paddingTop: gap(tile(0), 'gap-group', '16px'),
-            borderTop: `${strokeRoleOf(tile(0), 'divider', '1px')} solid ${tile(0).borderDefault || tile(0).border}`,
-          }}
-        >
-          <InspectableLive c="Checkbox" t={tile(0)} v={{ Checked: 'True', Size: 'SM' }} toggle="Checked" />
-          <InspectableLive c="Toggle" t={tile(0)} v={{ On: 'True', Size: 'SM' }} toggle="On" />
-          <InspectableLive c="Radio" t={tile(0)} v={{ Checked: 'True', Size: 'SM' }} toggle="Checked" />
-        </div>
-        <Slider t={tile(0)} v={{}} w="100%" />
-      </ScaledModule>
-
       <ScaledModule t={tile(2)} appearance={appearanceAt(2)}>
         <span style={{ ...typeStyleOf(tile(2), 'heading-sm'), color: tile(2).neutralText }}>{translate('Verify account')}</span>
         <InputOTP t={tile(2)} v={{ State: 'Filled', Size: 'SM' }} />
@@ -359,6 +330,7 @@ export function SystemCollage({
             c="Button"
             t={tile(3)}
             v={{ Style: 'Solid', Color: 'Danger', Size: 'SM' }}
+            icons={catalogueIcons(tile(3), 'error')}
             w="100%"
           >
             {translate('Critical')}
@@ -367,6 +339,7 @@ export function SystemCollage({
             c="Button"
             t={tile(3)}
             v={{ Style: 'Solid', Color: 'Success', Size: 'SM' }}
+            icons={catalogueIcons(tile(3), 'check')}
             w="100%"
           >
             {translate('Success')}
@@ -398,7 +371,7 @@ export function SystemCollage({
         >
           <StatusBadge t={tile(4)} v={{ Status: 'Online' }} />
           <StatusBadge t={tile(4)} v={{ Status: 'Busy' }} />
-          <Chip t={tile(4)} v={{ Selected: 'True' }} />
+          <InspectableLive c="Chip" t={tile(4)} v={{ Selected: 'True' }} toggle="Selected" />
         </div>
       </ScaledModule>
 
@@ -433,8 +406,8 @@ export function SystemCollage({
 
       <ScaledModule t={tile(7)} appearance={appearanceAt(7)}>
         <div className="grid grid-cols-2" style={{ gap: gap(tile(7), 'gap-control', '8px') }}>
-          <InspectableLive c="Button" t={tile(7)} v={{ Style: 'Outline', Size: 'SM' }} w="100%">{translate('Chats')}</InspectableLive>
-          <InspectableLive c="Button" t={tile(7)} v={{ Style: 'Outline', Size: 'SM' }} w="100%">{translate('Emails')}</InspectableLive>
+          <InspectableLive c="Button" t={tile(7)} v={{ Style: 'Outline', Size: 'SM' }} icons={catalogueIcons(tile(7), 'chat')} w="100%">{translate('Chats')}</InspectableLive>
+          <InspectableLive c="Button" t={tile(7)} v={{ Style: 'Outline', Size: 'SM' }} icons={catalogueIcons(tile(7), 'mail')} w="100%">{translate('Emails')}</InspectableLive>
         </div>
       </ScaledModule>
 

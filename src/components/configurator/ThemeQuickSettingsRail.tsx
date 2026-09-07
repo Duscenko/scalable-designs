@@ -202,9 +202,13 @@ export function ThemeIdentityBand({
  *  toward `transparent` interpolates to transparent BLACK (Tailwind v4
  *  does this `in oklab`), which leaves a 1px lighter seam on the opaque
  *  edge — the gap sitting on this fade's top. Masking keeps every visible
- *  pixel the chrome colour; only coverage fades. */
+ *  pixel the chrome colour; only coverage fades.
+ *
+ *  Coverage starts well under 1 so the edge is a whisper, not a slab —
+ *  no solid hold, ~20px tall. A 14px opaque band + `h-11` read as a
+ *  second header over Color edition. */
 const RAIL_EDGE_MASK = (toward: 'bottom' | 'top') =>
-  `linear-gradient(to ${toward}, #000 0 14px, transparent)`
+  `linear-gradient(to ${toward}, rgb(0 0 0 / 0.38), transparent)`
 
 /** Edge fades on a rail scroll body. The rail is `WORKSPACE_CHROME`
  *  (`bg-tab-bar`); dissolving from `--app` painted a darker bar over the first
@@ -248,7 +252,7 @@ export function ThemeRailScrollRegion({
   const fade = (edge: 'top' | 'bottom', on: boolean) => (
     <div
       aria-hidden
-      className={`pointer-events-none absolute inset-x-0 z-10 h-11 transition-opacity duration-150 ${
+      className={`pointer-events-none absolute inset-x-0 z-10 h-5 transition-opacity duration-150 ${
         edge === 'top' ? '-top-px' : '-bottom-px'
       } ${on ? 'opacity-100' : 'opacity-0'}`}
       style={{

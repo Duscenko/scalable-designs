@@ -168,6 +168,8 @@ export const PHOSPHOR_CORE: Record<string, string> = {
   check: 'check',
   chevron: 'caret-down',
   close: 'x',
+  chat: 'chat-circle',
+  mail: 'envelope-simple',
 }
 
 /** Canonical UI concepts → Phosphor React component name, for copy snippets
@@ -199,6 +201,8 @@ export const PHOSPHOR_CORE_COMPONENT: Record<string, string> = {
   check: 'Check',
   chevron: 'CaretDown',
   close: 'X',
+  chat: 'ChatCircle',
+  mail: 'EnvelopeSimple',
 }
 
 // Generic line glyphs shown as decorative previews — not the Phosphor set.

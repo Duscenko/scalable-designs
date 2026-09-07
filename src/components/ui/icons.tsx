@@ -1,3 +1,5 @@
+import { motion, useReducedMotion } from 'framer-motion'
+
 // Shared chrome icons — the single source for glyphs that repeat across the
 // configurator, so every surface shows the same official mark. Both track
 // currentColor; size them per context.
@@ -86,21 +88,78 @@ export function CopyGlyph({ size = 13, className = '' }: { size?: number; classN
   )
 }
 
+/** Frame + cursor from `public/icons/settings/inspect.svg`, split so the
+ *  pointer can move independently. Inline + `currentColor` (same ink contract
+ *  as the old CSS-mask) — a mask of the combined asset cannot animate a part. */
+const INSPECT_FRAME =
+  'M12.667 1.5C13.1531 1.50009 13.6191 1.69337 13.9629 2.03711C14.3066 2.38085 14.4999 2.84689 14.5 3.33301V7.33301C14.5 7.60915 14.2761 7.83301 14 7.83301C13.7239 7.83301 13.5 7.60915 13.5 7.33301V3.33301C13.4999 3.11211 13.4121 2.90034 13.2559 2.74414C13.0997 2.58794 12.8879 2.50009 12.667 2.5H3.33301C3.11211 2.50009 2.90034 2.58794 2.74414 2.74414C2.58794 2.90034 2.50009 3.11211 2.5 3.33301V12.667C2.50009 12.8879 2.58794 13.0997 2.74414 13.2559C2.90034 13.4121 3.11211 13.4999 3.33301 13.5H7.33301C7.60915 13.5 7.83301 13.7239 7.83301 14C7.83301 14.2761 7.60915 14.5 7.33301 14.5H3.33301C2.84689 14.4999 2.38085 14.3066 2.03711 13.9629C1.69337 13.6191 1.50009 13.1531 1.5 12.667V3.33301C1.50009 2.8469 1.69337 2.38085 2.03711 2.03711C2.38085 1.69337 2.8469 1.50009 3.33301 1.5H12.667Z'
+const INSPECT_CURSOR =
+  'M8.2832 7.5C8.40246 7.49318 8.52271 7.51272 8.63477 7.55664L14.6348 9.88965L14.6357 9.89062C14.7564 9.93779 14.864 10.0123 14.9502 10.1074L15.0293 10.209L15.0908 10.3213C15.144 10.438 15.1705 10.566 15.166 10.6953C15.16 10.8678 15.0998 11.0346 14.9951 11.1719C14.8904 11.309 14.7457 11.4105 14.5811 11.4619H14.5801L12.2842 12.1738C12.2583 12.1818 12.234 12.1967 12.2148 12.2158C12.1958 12.2349 12.1818 12.2584 12.1738 12.2842L11.4619 14.5801V14.5811C11.4105 14.7457 11.309 14.8904 11.1719 14.9951C11.0346 15.0998 10.8678 15.16 10.6953 15.166C10.5231 15.172 10.3531 15.1239 10.209 15.0293C10.0647 14.9345 9.95347 14.7965 9.89062 14.6357L9.88965 14.6348L7.55664 8.63477L7.52148 8.51953C7.49412 8.40293 7.49129 8.28133 7.51562 8.16309L7.54883 8.04688C7.59021 7.93314 7.65592 7.82846 7.74219 7.74219L7.83398 7.66309C7.93106 7.5909 8.04364 7.54023 8.16309 7.51562L8.2832 7.5ZM10.6484 13.8262L11.2188 11.9883C11.2748 11.8074 11.3739 11.6428 11.5078 11.5088C11.6419 11.3747 11.8071 11.2748 11.9883 11.2188L13.8262 10.6484L8.62598 8.62598L10.6484 13.8262Z'
+
+const INSPECT_EASE = [0.22, 1, 0.36, 1] as const
+
 /** Inspect tokens — designer-supplied mark (`public/icons/settings/inspect.svg`).
- *  Same CSS-mask + currentColor treatment as `CopyGlyph` / `ViewIcon`: the
- *  asset ships `fill="white"`, so a bare `<img>` can't track button ink. */
-export function InspectGlyph({ size = 16, className = '' }: { size?: number; className?: string }) {
+ *  `hint` plays the inspect gesture (cursor approaches the frame, taps, retreats)
+ *  so the header control can advertise the mode without looping the whole pill.
+ *  Armed / reduced-motion / paused stay on the rest pose. */
+export function InspectGlyph({
+  size = 16,
+  className = '',
+  hint = false,
+  paused = false,
+}: {
+  size?: number
+  className?: string
+  hint?: boolean
+  paused?: boolean
+}) {
+  const reduce = useReducedMotion() ?? false
+  const play = hint && !paused && !reduce
   return (
-    <span
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      className={`flex-shrink-0 overflow-visible ${className}`}
       aria-hidden
-      className={`inline-block flex-shrink-0 bg-current ${className}`}
-      style={{
-        width: size,
-        height: size,
-        WebkitMask: "url('/icons/settings/inspect.svg') center / contain no-repeat",
-        mask: "url('/icons/settings/inspect.svg') center / contain no-repeat",
-      }}
-    />
+    >
+      <motion.path
+        d={INSPECT_FRAME}
+        animate={play ? { opacity: [1, 1, 0.62, 1, 1] } : { opacity: 1 }}
+        transition={
+          play
+            ? {
+                duration: 2.1,
+                times: [0, 0.34, 0.48, 0.62, 1],
+                ease: [INSPECT_EASE, 'linear', INSPECT_EASE, INSPECT_EASE],
+                repeat: Infinity,
+                repeatDelay: 3.2,
+              }
+            : { duration: 0.18, ease: INSPECT_EASE }
+        }
+      />
+      <motion.path
+        d={INSPECT_CURSOR}
+        fillRule="evenodd"
+        animate={
+          play
+            ? { x: [1.7, 0, 0.28, 0, 1.7], y: [1.7, 0, 0.28, 0, 1.7] }
+            : { x: 0, y: 0 }
+        }
+        transition={
+          play
+            ? {
+                duration: 2.1,
+                times: [0, 0.34, 0.48, 0.62, 1],
+                ease: [INSPECT_EASE, INSPECT_EASE, INSPECT_EASE, INSPECT_EASE],
+                repeat: Infinity,
+                repeatDelay: 3.2,
+              }
+            : { duration: 0.18, ease: INSPECT_EASE }
+        }
+      />
+    </svg>
   )
 }
 

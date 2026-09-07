@@ -302,7 +302,7 @@ export type IconConcept =
   | 'plus' | 'upload' | 'info' | 'success' | 'warning' | 'error'
   | 'home' | 'box' | 'grid' | 'image' | 'text' | 'settings' | 'palette'
   | 'bookmark' | 'heart' | 'share' | 'user' | 'users' | 'zap' | 'check'
-  | 'chevron' | 'close'
+  | 'chevron' | 'close' | 'chat' | 'mail'
 
 export function iconName(_prefix: string, concept: IconConcept): string {
   return PHOSPHOR_CORE[concept] ?? concept
@@ -318,7 +318,22 @@ export const ICON_SLOTS: Record<string, { leading: IconConcept; trailing: IconCo
   Input: { leading: 'search', trailing: 'eye' },
 }
 
-export interface IconOpts { prefix: string; leading: boolean; trailing: boolean }
+/** Brand keeps the catalogue star. A severity button that still shows a star
+ *  is advertising decoration as status — Danger is the error circle, Success
+ *  the plain check (`check-circle` collapses to a star-shaped blob at SM). */
+function buttonLeadingConcept(color?: string): IconConcept {
+  if (color === 'Danger') return 'error'
+  if (color === 'Success') return 'check'
+  return ICON_SLOTS.Button.leading
+}
+
+export interface IconOpts {
+  prefix: string
+  leading: boolean
+  trailing: boolean
+  /** Overrides `buttonLeadingConcept` / `ICON_SLOTS` for this render. */
+  leadingConcept?: IconConcept
+}
 
 /**
  * Which Phosphor WEIGHT the specimens under this subtree render at.
@@ -503,7 +518,14 @@ function ButtonSpecimen({ t, v, icons, w, children }: SpecimenProps) {
       }}
     >
       {loading && <SpecimenSpinner size={sz.icon - 2} color={fg} track={fg + '33'} />}
-      {!loading && icons?.leading && <PreviewIcon prefix={icons.prefix} concept={slots.leading} size={sz.icon} color={fg} />}
+      {!loading && icons?.leading && (
+        <PreviewIcon
+          prefix={icons.prefix}
+          concept={icons.leadingConcept ?? buttonLeadingConcept(v.Color)}
+          size={sz.icon}
+          color={fg}
+        />
+      )}
       {children ?? 'Button'}
       {icons?.trailing && <PreviewIcon prefix={icons.prefix} concept={slots.trailing} size={sz.icon} color={fg} />}
     </button>
@@ -522,11 +544,43 @@ const INPUT_META: Record<string, { label: string; placeholder: string; prefix?: 
   'Website':      { label: 'Website', placeholder: 'yoursite.com', prefix: 'https://' },
 }
 
+const INPUT_HTML_TYPE: Record<string, string> = {
+  Default: 'text',
+  'Icon Leading': 'text',
+  'Icon Trailing': 'text',
+  'E-Mail': 'email',
+  Password: 'password',
+  Search: 'search',
+  'Phone Number': 'tel',
+  Website: 'url',
+}
+
+function inputSeed(type: string | undefined, state: string | undefined): string {
+  if (state !== 'Filled') return ''
+  return type === 'E-Mail' ? 'maya@escala.ds' : 'Maya Duscenko'
+}
+
 function InputSpecimen({ t, v, icons, w }: SpecimenProps) {
   const { t: translate } = useI18n()
-  const state = v.State ?? 'Default'
   const meta = INPUT_META[v.Type ?? 'Default'] ?? INPUT_META.Default
   const h = INPUT_HEIGHTS[v.Size ?? 'MD'] ?? 40
+  const inspecting = useInspectorActive()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState(() => inputSeed(v.Type, v.State))
+  const [hover, setHover] = useState(false)
+  const [focus, setFocus] = useState(false)
+
+  // Playground State still wins for the variants you inspect (Error /
+  // Disabled / Loading, or a static Hover/Focused). Live hover and typing
+  // only take over when that dropdown isn't pinning a special state — same
+  // "don't override the variant on screen" rule `Live` follows.
+  const pinned = v.State === 'Disabled' || v.State === 'Error' || v.State === 'Loading'
+  const state = pinned ? (v.State ?? 'Default')
+    : focus ? 'Focused'
+    : !inspecting && hover ? 'Hover'
+    : v.State === 'Focused' || v.State === 'Hover' ? v.State
+    : value ? 'Filled'
+    : 'Default'
   const disabled = state === 'Disabled'
   const error = state === 'Error'
   const slots = ICON_SLOTS.Input
@@ -540,12 +594,17 @@ function InputSpecimen({ t, v, icons, w }: SpecimenProps) {
         {translate(meta.label)}
       </span>
       <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        onClick={() => { if (!disabled) inputRef.current?.focus() }}
         style={{
           display: 'flex', alignItems: 'center', gap: 8, height: h, padding: '0 12px',
           borderRadius: radiusRoleOf(t, 'action'),
           border: `${strokeControl(t)} solid ${border}`,
           background: disabled ? t.disabledBg : t.inputSurface ?? inputSurfaceOf(t),
           boxShadow: state === 'Focused' ? `0 0 0 ${strokeFocus(t)} ${accent}26` : undefined,
+          cursor: disabled ? 'not-allowed' : 'text',
+          transition: STATE_TRANSITION,
         }}
       >
         {icons?.leading && <PreviewIcon prefix={icons.prefix} concept={slots.leading} size={16} color={iconColor} />}
@@ -555,9 +614,27 @@ function InputSpecimen({ t, v, icons, w }: SpecimenProps) {
             (the same job). Sharing `placeholderText` with the value made
             the @ and the typed text one token. */}
         {!icons?.leading && meta.lead && <span style={{ ...typeOf(t, 'placeholder'), color: disabled ? t.disabledText : (t.fgMuted ?? t.placeholderText) }}>{meta.lead}</span>}
-        <span style={{ ...typeOf(t, 'placeholder'), flex: 1, color: disabled ? t.disabledText : state === 'Filled' ? t.neutralText : t.placeholderText }}>
-          {state === 'Filled' ? (v.Type === 'E-Mail' ? 'maya@escala.ds' : 'Maya Duscenko') : meta.placeholder}
-        </span>
+        <input
+          ref={inputRef}
+          type={INPUT_HTML_TYPE[v.Type ?? 'Default'] ?? 'text'}
+          value={value}
+          placeholder={meta.placeholder}
+          disabled={disabled}
+          autoComplete="off"
+          spellCheck={false}
+          aria-invalid={error || undefined}
+          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          style={{
+            ...typeOf(t, 'placeholder'),
+            flex: 1, minWidth: 0, width: '100%',
+            border: 'none', outline: 'none', background: 'transparent', padding: 0,
+            color: disabled ? t.disabledText : value ? t.neutralText : t.placeholderText,
+            caretColor: t.brandSolid,
+            cursor: disabled ? 'not-allowed' : 'text',
+          }}
+        />
         {icons?.trailing && <PreviewIcon prefix={icons.prefix} concept={slots.trailing} size={16} color={iconColor} />}
         {state === 'Loading' && <SpecimenSpinner size={13} color={t.brandSolid} track={t.brandSolid + '33'} />}
       </div>
@@ -1223,32 +1300,55 @@ function TextareaSpecimen({ t, v }: SpecimenProps) {
 }
 
 function InputOTPSpecimen({ t, v }: SpecimenProps) {
-  const state = v.State ?? 'Default'
-  const filled = state === 'Filled'
-  const error = state === 'Error'
+  const pinned = v.State ?? 'Default'
+  const error = pinned === 'Error'
   const sizeKey = (v.Size ?? 'MD').toLowerCase()
   const dim = sizeOf(t, sizeKey, sizeKey === 'sm' ? 32 : sizeKey === 'lg' ? 48 : 40)
   const gap = parseFloat(
     v.Size === 'SM' ? spacingRoleOf(t, 'gap-tight', '4px') : spacingRoleOf(t, 'gap-control', '8px'),
   ) || 8
-  const code = '824913'
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [code, setCode] = useState(() => (pinned === 'Filled' || error) ? '824913' : '')
+  const [focus, setFocus] = useState(false)
+  const caret = Math.min(code.length, 5)
+
   return (
-    <div style={{ display: 'flex', gap }}>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <span
-          key={i}
-          style={{
-            ...baseFont(t),
-            width: dim, height: dim, borderRadius: radiusRoleOf(t, 'action'),
-            border: `${strokeControl(t)} solid ${error ? (t.borderCritical ?? borderCriticalOf(t)) : filled || i > 0 ? (t.border ?? '#d0d5dd') : t.brandSolid}`,
-            background: t.inputSurface ?? inputSurfaceOf(t), display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            ...typeOf(t, 'button'), color: t.neutralText,
-            boxShadow: !filled && !error && i === 0 ? `0 0 0 ${strokeFocus(t)} ${t.brandSolid}26` : undefined,
-          }}
-        >
-          {filled || error ? code[i] : i === 0 ? '' : ''}
-        </span>
-      ))}
+    <div
+      style={{ position: 'relative', display: 'flex', gap, cursor: 'text' }}
+      onClick={() => inputRef.current?.focus()}
+    >
+      <input
+        ref={inputRef}
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={6}
+        value={code}
+        aria-label="Verification code"
+        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        onFocus={() => setFocus(true)}
+        onBlur={() => setFocus(false)}
+        style={{ position: 'absolute', inset: 0, opacity: 0, border: 'none', padding: 0, cursor: 'text' }}
+      />
+      {Array.from({ length: 6 }).map((_, i) => {
+        const lit = focus && i === caret
+        return (
+          <span
+            key={i}
+            aria-hidden
+            style={{
+              ...baseFont(t),
+              width: dim, height: dim, borderRadius: radiusRoleOf(t, 'action'),
+              border: `${strokeControl(t)} solid ${error ? (t.borderCritical ?? borderCriticalOf(t)) : lit ? t.brandSolid : (t.border ?? '#d0d5dd')}`,
+              background: t.inputSurface ?? inputSurfaceOf(t), display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              ...typeOf(t, 'button'), color: t.neutralText,
+              boxShadow: lit ? `0 0 0 ${strokeFocus(t)} ${t.brandSolid}26` : undefined,
+              transition: STATE_TRANSITION,
+            }}
+          >
+            {code[i] ?? ''}
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -1268,16 +1368,60 @@ function InputStepperSpecimen({ t }: { t: PreviewTokens }) {
 }
 
 function InputTagSpecimen({ t, w }: SpecimenProps) {
-  const tags = ['tokens', 'figma']
+  const [tags, setTags] = useState(['tokens', 'figma'])
+  const [draft, setDraft] = useState('')
+  const [focus, setFocus] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const add = () => {
+    const next = draft.trim().toLowerCase()
+    if (!next || tags.includes(next)) { setDraft(''); return }
+    setTags((list) => [...list, next])
+    setDraft('')
+  }
   return (
-    <div style={{ ...baseFont(t), display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, width: w ?? 300, minHeight: 40, padding: '6px 10px', borderRadius: radiusRoleOf(t, 'action'), border: `${strokeControl(t)} solid ${t.border ?? '#d0d5dd'}`, background: t.inputSurface ?? inputSurfaceOf(t) }}>
+    <div
+      onClick={() => inputRef.current?.focus()}
+      style={{
+        ...baseFont(t), display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6,
+        width: w ?? 300, minHeight: 40, padding: '6px 10px',
+        borderRadius: radiusRoleOf(t, 'action'),
+        border: `${strokeControl(t)} solid ${focus ? focusBorderOf(t) : (t.border ?? '#d0d5dd')}`,
+        background: t.inputSurface ?? inputSurfaceOf(t),
+        boxShadow: focus ? `0 0 0 ${strokeFocus(t)} ${focusBorderOf(t)}26` : undefined,
+        cursor: 'text', transition: STATE_TRANSITION,
+      }}
+    >
       {tags.map((tag) => (
         <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, background: soft(t, t.brandSolid), color: t.brandText, ...typeOf(t, 'label') }}>
           {tag}
-          <PreviewIcon concept="close" size={9} color={t.brandText} />
+          <button
+            type="button"
+            aria-label={`Remove ${tag}`}
+            onClick={(e) => { e.stopPropagation(); setTags((list) => list.filter((x) => x !== tag)) }}
+            style={{ display: 'inline-flex', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: t.brandText }}
+          >
+            <PreviewIcon concept="close" size={9} color={t.brandText} />
+          </button>
         </span>
       ))}
-      <span style={{ ...typeOf(t, 'placeholder'), color: t.placeholderText }}>Add a tag…</span>
+      <input
+        ref={inputRef}
+        value={draft}
+        placeholder={tags.length ? '' : 'Add a tag…'}
+        aria-label="Add a tag"
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocus(true)}
+        onBlur={() => { setFocus(false); add() }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add() }
+          else if (e.key === 'Backspace' && !draft) setTags((list) => list.slice(0, -1))
+        }}
+        style={{
+          ...typeOf(t, 'placeholder'),
+          flex: 1, minWidth: 64, border: 'none', outline: 'none', background: 'transparent', padding: 0,
+          color: t.neutralText, caretColor: t.brandSolid,
+        }}
+      />
     </div>
   )
 }
@@ -1313,24 +1457,50 @@ function ComboboxSpecimen({ t, v }: SpecimenProps) {
   )
 }
 
-function CheckRow({ t, checked, children }: { t: PreviewTokens; checked?: boolean; children: ReactNode }) {
+function CheckRow({ t, checked, onToggle, children }: { t: PreviewTokens; checked?: boolean; onToggle?: () => void; children: ReactNode }) {
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-      <span style={{ width: 18, height: 18, borderRadius: radiusRoleOf(t, 'control'), background: checked ? t.brandSolid : t.inputSurface ?? inputSurfaceOf(t), border: `${strokeControl(t)} solid ${checked ? t.brandSolid : (t.border ?? '#d0d5dd')}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={!!checked}
+        onClick={onToggle}
+        style={{
+          width: 18, height: 18, padding: 0, border: `${strokeControl(t)} solid ${checked ? t.brandSolid : (t.border ?? '#d0d5dd')}`,
+          borderRadius: radiusRoleOf(t, 'control'),
+          background: checked ? t.brandSolid : t.inputSurface ?? inputSurfaceOf(t),
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', transition: STATE_TRANSITION,
+        }}
+      >
         {checked && <PreviewIcon concept="check" size={11} color={t.onBrand} />}
-      </span>
+      </button>
       <span style={{ ...typeOf(t, 'label'), color: t.neutralText }}>{children}</span>
     </label>
   )
 }
 
 function CheckboxGroupSpecimen({ t }: { t: PreviewTokens }) {
+  const rows = ['Comments on my files', 'New team members', 'Weekly digest']
+  const [on, setOn] = useState(() => new Set([0, 1]))
   return (
     <fieldset style={{ ...baseFont(t), border: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <legend style={{ ...typeOf(t, 'label'), color: t.fgMuted, marginBottom: 8, padding: 0 }}>Notify me about</legend>
-      <CheckRow t={t} checked>Comments on my files</CheckRow>
-      <CheckRow t={t} checked>New team members</CheckRow>
-      <CheckRow t={t}>Weekly digest</CheckRow>
+      {rows.map((label, i) => (
+        <CheckRow
+          key={label}
+          t={t}
+          checked={on.has(i)}
+          onToggle={() => setOn((prev) => {
+            const next = new Set(prev)
+            if (next.has(i)) next.delete(i)
+            else next.add(i)
+            return next
+          })}
+        >
+          {label}
+        </CheckRow>
+      ))}
     </fieldset>
   )
 }
@@ -1687,16 +1857,22 @@ function ChipSpecimen({ t, v }: SpecimenProps) {
   const selected = (v.Selected ?? 'False') === 'True'
   const dismissible = (v.Dismissible ?? 'False') === 'True'
   const small = (v.Size ?? 'MD') === 'SM'
+  const inspecting = useInspectorActive()
+  const [hover, setHover] = useState(false)
+  const hot = !inspecting && hover
   return (
     <span
       aria-pressed={selected}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         ...baseFont(t),
         display: 'inline-flex', alignItems: 'center', gap: small ? 5 : 6, padding: small ? '3px 10px' : '5px 12px', borderRadius: radiusRoleOf(t, 'pill'),
-        background: selected ? (t.selectedSurface ?? selectedSurfaceOf(t)) : 'transparent',
-        border: `${strokeControl(t)} solid ${selected ? t.brandSolid + '66' : (t.border ?? '#d0d5dd')}`,
+        background: selected ? (t.selectedSurface ?? selectedSurfaceOf(t)) : hot ? softer(t, t.brandSolid) : 'transparent',
+        border: `${strokeControl(t)} solid ${selected ? t.brandSolid + '66' : hot ? (t.borderHover ?? borderHoverOf(t)) : (t.border ?? '#d0d5dd')}`,
         color: selected ? t.brandText : t.neutralText,
         ...typeOf(t, 'label'), cursor: 'pointer',
+        transition: STATE_TRANSITION,
       }}
     >
       Design tokens
@@ -2027,49 +2203,122 @@ const SIDEBAR_ICONS: Record<string, IconConcept> = {
 function SidebarSpecimen({ t, w }: SpecimenProps) {
   const items = [
     { icon: 'home', label: 'Overview' },
-    { icon: 'color', label: 'Tokens', active: true },
+    { icon: 'color', label: 'Tokens' },
     { icon: 'box', label: 'Components' },
     { icon: 'gear', label: 'Settings' },
   ]
+  const [active, setActive] = useState(1)
+  const [hover, setHover] = useState<number | null>(null)
+  const reduce = useReducedMotion() ?? false
+  const pillId = `sidebar-pill-${useId()}`
+
   return (
     <nav aria-label="Sidebar" style={{ ...baseFont(t), width: w ?? 200, padding: 8, borderRadius: radiusRoleOf(t, 'action'), border: `${strokeControl(t)} solid ${t.borderDefault ?? '#e9eaeb'}`, background: raisedBg(t), display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {items.map((item) => (
-        <span
-          key={item.label}
-          aria-current={item.active ? 'page' : undefined}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-            borderRadius: radiusRoleOf(t, 'control'), ...typeOf(t, 'body-sm'), cursor: 'pointer',
-            background: item.active ? soft(t, t.brandSolid) : 'transparent',
-            color: item.active ? t.brandText : t.neutralText,
-            fontWeight: item.active ? weightOf(t, 'medium', 500) : 400,
-          }}
-        >
-          <PreviewIcon concept={SIDEBAR_ICONS[item.icon]} size={15} color={item.active ? t.brandText : t.neutralText} />
-          {item.label}
-        </span>
-      ))}
+      {items.map((item, i) => {
+        const on = i === active
+        const hot = hover === i
+        return (
+          <button
+            key={item.label}
+            type="button"
+            aria-current={on ? 'page' : undefined}
+            tabIndex={on ? 0 : -1}
+            onClick={() => setActive(i)}
+            onMouseEnter={() => setHover(i)}
+            onMouseLeave={() => setHover((h) => (h === i ? null : h))}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault()
+                const next = (i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
+                setActive(next)
+                const el = e.currentTarget.parentElement?.children[next] as HTMLElement | undefined
+                el?.focus()
+              }
+            }}
+            style={{
+              position: 'relative',
+              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+              border: 'none', background: 'transparent',
+              borderRadius: radiusRoleOf(t, 'control'), ...typeOf(t, 'body-sm'),
+              cursor: 'pointer', textAlign: 'left', width: '100%',
+              // Inactive warms the ink on hover — a second fill would compete
+              // with the sliding pill for "which row is current" (same rule
+              // TabMenu already follows).
+              color: on ? t.brandText : hot ? t.neutralText : t.fgMuted,
+              fontWeight: on ? weightOf(t, 'medium', 500) : 400,
+              transition: STATE_TRANSITION,
+            }}
+          >
+            {on && (
+              <motion.span
+                layoutId={pillId}
+                aria-hidden
+                style={{
+                  position: 'absolute', inset: 0, borderRadius: radiusRoleOf(t, 'control'),
+                  background: t.selectedSurface ?? selectedSurfaceOf(t),
+                }}
+                transition={reduce ? { duration: 0 } : { duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+              />
+            )}
+            <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+              <PreviewIcon concept={SIDEBAR_ICONS[item.icon]} size={15} color={on ? t.brandText : hot ? t.neutralText : t.fgMuted} />
+              {item.label}
+            </span>
+          </button>
+        )
+      })}
     </nav>
   )
 }
 
 function PaginationSpecimen({ t }: { t: PreviewTokens }) {
-  const cell = (label: string, current = false, muted = false): ReactNode => (
-    <span
-      key={label + (current ? '-c' : '')}
-      aria-current={current ? 'page' : undefined}
-      style={{
-        minWidth: 32, height: 32, padding: '0 6px', borderRadius: radiusRoleOf(t, 'action'),
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        ...typeOf(t, 'body-sm'), cursor: muted ? 'default' : 'pointer',
-        background: current ? t.brandSolid : 'transparent',
-        color: current ? t.onBrand : muted ? t.placeholderText : t.neutralText,
-        fontWeight: current ? weightOf(t, 'semibold', 600) : 400,
-      }}
-    >
-      {label}
-    </span>
-  )
+  const pages = [1, 2, 3, 8]
+  const [page, setPage] = useState(2)
+  const [hover, setHover] = useState<string | null>(null)
+  const reduce = useReducedMotion() ?? false
+  const pillId = `pagination-pill-${useId()}`
+  const at = pages.indexOf(page)
+  const go = (n: number) => setPage(pages[Math.min(pages.length - 1, Math.max(0, n))] ?? page)
+
+  const cell = (id: string, label: string, opts: { current?: boolean; muted?: boolean; onClick?: () => void } = {}): ReactNode => {
+    const hot = hover === id && !opts.muted && !opts.current
+    return (
+      <button
+        key={id}
+        type="button"
+        disabled={opts.muted}
+        aria-current={opts.current ? 'page' : undefined}
+        onClick={opts.muted ? undefined : opts.onClick}
+        onMouseEnter={() => setHover(id)}
+        onMouseLeave={() => setHover((h) => (h === id ? null : h))}
+        style={{
+          position: 'relative',
+          minWidth: 32, height: 32, padding: '0 6px', borderRadius: radiusRoleOf(t, 'action'),
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          border: 'none', background: 'transparent',
+          ...typeOf(t, 'body-sm'),
+          cursor: opts.muted ? 'default' : 'pointer',
+          color: opts.current ? t.onBrand : opts.muted ? t.placeholderText : hot ? t.neutralText : t.fgMuted,
+          fontWeight: opts.current ? weightOf(t, 'semibold', 600) : 400,
+          transition: STATE_TRANSITION,
+        }}
+      >
+        {opts.current && (
+          <motion.span
+            layoutId={pillId}
+            aria-hidden
+            style={{
+              position: 'absolute', inset: 0, borderRadius: radiusRoleOf(t, 'action'),
+              background: t.brandSolid,
+            }}
+            transition={reduce ? { duration: 0 } : { duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+          />
+        )}
+        <span style={{ position: 'relative' }}>{label}</span>
+      </button>
+    )
+  }
+
   return (
     <nav
       aria-label="Pagination"
@@ -2084,7 +2333,13 @@ function PaginationSpecimen({ t }: { t: PreviewTokens }) {
         border: `${strokeControl(t)} solid ${t.borderDefault ?? '#e9eaeb'}`,
       }}
     >
-      {cell('‹')}{cell('1')}{cell('2', true)}{cell('3')}{cell('…', false, true)}{cell('8')}{cell('›')}
+      {cell('prev', '‹', { onClick: () => go(at - 1) })}
+      {cell('p1', '1', { current: page === 1, onClick: () => setPage(1) })}
+      {cell('p2', '2', { current: page === 2, onClick: () => setPage(2) })}
+      {cell('p3', '3', { current: page === 3, onClick: () => setPage(3) })}
+      {cell('ellipsis', '…', { muted: true })}
+      {cell('p8', '8', { current: page === 8, onClick: () => setPage(8) })}
+      {cell('next', '›', { onClick: () => go(at + 1) })}
     </nav>
   )
 }
@@ -2234,6 +2489,10 @@ function TabMenuSpecimen({ t, w }: SpecimenProps) {
 function SegmentedControlSpecimen({ t, v }: SpecimenProps) {
   const items = ['List', 'Board', 'Timeline']
   const small = (v.Size ?? 'MD') === 'SM'
+  const [active, setActive] = useState(0)
+  const [hover, setHover] = useState<number | null>(null)
+  const reduce = useReducedMotion() ?? false
+  const pillId = `segmented-pill-${useId()}`
   return (
     // The TRACK is a container sitting on another container (this control
     // lives inside a card, never straight on the page), which is exactly what
@@ -2241,24 +2500,44 @@ function SegmentedControlSpecimen({ t, v }: SpecimenProps) {
     // states — layer-1 is the card it sits ON, so painting the track with it
     // too left the two indistinguishable.
     <div role="radiogroup" style={{ ...baseFont(t), display: 'inline-flex', padding: 3, gap: 2, borderRadius: radiusRoleOf(t, 'action'), background: overlaySurfaceOf(t) }}>
-      {items.map((item, i) => (
-        <span
-          key={item}
-          role="radio"
-          aria-checked={i === 0}
-          style={{
-            padding: small ? '4px 10px' : '6px 14px', borderRadius: radiusRoleOf(t, 'control'), ...typeOf(t, 'button'), cursor: 'pointer',
-            // Raised chip on the track — the input surface, so it stays
-            // a light pill no matter where the theme puts `surface.page`.
-            background: i === 0 ? t.inputSurface ?? inputSurfaceOf(t) : 'transparent',
-            color: i === 0 ? t.neutralText : t.fgMuted,
-            fontWeight: i === 0 ? weightOf(t, 'semibold', 600) : 400,
-            boxShadow: i === 0 ? shadowOf(t, 'xs', '0 1px 2px rgba(10,13,18,0.1)') : 'none',
-          }}
-        >
-          {item}
-        </span>
-      ))}
+      {items.map((item, i) => {
+        const on = i === active
+        const hot = hover === i
+        return (
+          <button
+            key={item}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => setActive(i)}
+            onMouseEnter={() => setHover(i)}
+            onMouseLeave={() => setHover((h) => (h === i ? null : h))}
+            style={{
+              position: 'relative',
+              padding: small ? '4px 10px' : '6px 14px',
+              border: 'none', background: 'transparent',
+              borderRadius: radiusRoleOf(t, 'control'), ...typeOf(t, 'button'), cursor: 'pointer',
+              color: on ? t.neutralText : hot ? t.neutralText : t.fgMuted,
+              fontWeight: on ? weightOf(t, 'semibold', 600) : 400,
+              transition: STATE_TRANSITION,
+            }}
+          >
+            {on && (
+              <motion.span
+                layoutId={pillId}
+                aria-hidden
+                style={{
+                  position: 'absolute', inset: 0, borderRadius: radiusRoleOf(t, 'control'),
+                  background: t.inputSurface ?? inputSurfaceOf(t),
+                  boxShadow: shadowOf(t, 'xs', '0 1px 2px rgba(10,13,18,0.1)'),
+                }}
+                transition={reduce ? { duration: 0 } : { duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+              />
+            )}
+            <span style={{ position: 'relative' }}>{item}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -2487,7 +2766,13 @@ export function snippetFor(def: ComponentDef, v: AxisValues, icons?: IconOpts): 
   switch (def.key) {
     case 'Button': {
       const flags = `${v.State === 'Disabled' ? ' disabled' : ''}${v.State === 'Loading' ? ' loading' : ''}`
-      return `<Button color="${low(v.Color) || 'brand'}" style="${low(v.Style) || 'solid'}"${sizeProp}${flags}${iconProps('Button')}>\n  Button\n</Button>`
+      const leading = icons?.leading
+        ? ` leadingIcon={<${ICON_COMPONENT[icons.leadingConcept ?? buttonLeadingConcept(v.Color)]} />}`
+        : ''
+      const trailing = icons?.trailing
+        ? ` trailingIcon={<${ICON_COMPONENT[ICON_SLOTS.Button.trailing]} />}`
+        : ''
+      return `<Button color="${low(v.Color) || 'brand'}" style="${low(v.Style) || 'solid'}"${sizeProp}${flags}${leading}${trailing}>\n  Button\n</Button>`
     }
     case 'Input': {
       const type = ({ 'default': 'text', 'e-mail': 'email', 'password': 'password', 'search': 'search', 'phone-number': 'tel', 'website': 'url' } as Record<string, string>)[low(v.Type)] ?? 'text'

@@ -35,6 +35,7 @@ const CORE_SLUGS = [
   'info', 'check-circle', 'warning', 'x-circle', 'house', 'cube', 'grid-four',
   'image', 'text-t', 'gear', 'palette', 'bookmark-simple', 'heart',
   'share-network', 'user', 'users', 'lightning', 'check', 'caret-down', 'x',
+  'chat-circle', 'envelope-simple',
 ]
 
 const pkgDir = join(root, 'node_modules/@phosphor-icons/core')
@@ -49,8 +50,9 @@ if (existsSync(indexFile)) {
   const prev = readFileSync(indexFile, 'utf8')
   const ver = /PHOSPHOR_ICONS_VERSION = ["']([^"']+)["']/.exec(prev)?.[1]
   const count = /PHOSPHOR_ICONS_COUNT = (\d+)/.exec(prev)?.[1]
+  const missingCore = CORE_SLUGS.some((s) => !prev.includes(`"${s}":`))
   if (
-    ver === pkg.version && count && Number(count) > 1000 &&
+    ver === pkg.version && count && Number(count) > 1000 && !missingCore &&
     WEIGHTS.every((w) => existsSync(join(outDir, `phosphor-body-${w}.ts`)))
   ) {
     console.log(`phosphor-icons catalog up to date (${pkg.version}, ${count} icons)`)

@@ -191,11 +191,14 @@ function HubBreadcrumb({ section, onBack }: { section: string; onBack?: () => vo
 function InspectorToggle({ active, onChange }: { active: boolean; onChange: (v: boolean) => void }) {
   const { t } = useI18n()
   const label = t('Inspect tokens')
+  const [hover, setHover] = useState(false)
   return (
     <div className="flex h-8 items-center rounded-lg border border-line p-0.5">
       <button
         type="button"
         onClick={() => onChange(!active)}
+        onPointerEnter={() => setHover(true)}
+        onPointerLeave={() => setHover(false)}
         aria-pressed={active}
         aria-label={label}
         title={`${label} — ${t('point at a component or the page to see the roles that paint it')}`}
@@ -205,7 +208,7 @@ function InspectorToggle({ active, onChange }: { active: boolean; onChange: (v: 
             : 'text-fg-faint hover:bg-surface hover:text-fg'
         }`}
       >
-        <InspectGlyph size={16} />
+        <InspectGlyph size={16} hint={!active} paused={hover} />
         {label}
       </button>
     </div>
