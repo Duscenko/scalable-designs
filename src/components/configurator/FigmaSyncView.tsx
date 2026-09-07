@@ -6,7 +6,7 @@ import { useDesignStore } from '../../store/useDesignStore'
 import { isLiveEnvironment, publishOrigin, syncProjectId, syncUrl as buildSyncUrl, type FigmaPublishState } from '../../lib/figmaSync'
 import { buildWorkspaceAppUrl } from '../../lib/workspaceLink'
 import { BASE_TONE } from '../../lib/colorUtils'
-import { myThemeKeys } from '../../lib/themeLibrary'
+import { figmaSyncThemeKeys } from '../../lib/themeLibrary'
 import { themeBrandRamp, themeDisplayName } from '../../lib/themeSources'
 import {
   FIGMA_SYNC_MODE_CAP,
@@ -240,10 +240,11 @@ export default function FigmaSyncView({
     autoSyncFigma, setAutoSyncFigma, pluginBuildSeen,
     themeOrder, themes, themeLabels, themeKinds, themeSources,
   } = store
-  const syncThemes = useMemo(() => {
-    const own = myThemeKeys(themeOrder, themes)
-    return own.length ? own : themeOrder.filter((key) => Boolean(themes[key]))
-  }, [themeOrder, themes])
+  const syncThemes = useMemo(
+    () => figmaSyncThemeKeys(themeOrder, themes),
+    [themeOrder, themes],
+  )
+  const cannotSync = syncThemes.length === 0
   const [isDeployed] = useState(isLiveEnvironment)
   const pluginSlug = syncProjectId(fileName)
   const syncUrl = buildSyncUrl(fileName)
@@ -292,9 +293,10 @@ export default function FigmaSyncView({
         />
       ) : null}
 
-      {/* Modes first, then File name + ID to plugin as one link. */}
-      {syncThemes.length > 0 && (
-        <div className="flex flex-col rounded-xl border border-line bg-surface/50">
+      {/* Modes first, then File name + ID to plugin as one link. Scaffold
+          light/dark are not My themes — an empty library shows an empty
+          list, never a default-blue "Dark" row. */}
+      <div className="flex flex-col rounded-xl border border-line bg-surface/50">
           <div className="flex flex-shrink-0 items-center gap-3 border-b border-line px-5 py-3">
             <p className="text-sm font-semibold text-fg">{t('File & modes')}</p>
             <p className="ml-auto text-caption text-fg-faint">
@@ -304,8 +306,13 @@ export default function FigmaSyncView({
           <div className="flex flex-col gap-4 p-5">
             <div className="flex flex-col gap-1.5">
               <p className="text-caption text-fg-faint leading-relaxed">
-                {t('Figma gets Light and Dark as columns for each selected theme. Pick up to 3 modes.')}
+                {cannotSync
+                  ? t('Add a System style or create a theme. Trying one on does not add it.')
+                  : t('Figma gets Light and Dark as columns for each selected theme. Pick up to 3 modes.')}
               </p>
+              {cannotSync ? (
+                <p className="text-body font-medium text-fg-muted">{t('Nothing in My themes yet.')}</p>
+              ) : (
               <div role="group" aria-label={t('Modes to sync')} className="flex flex-col gap-1">
                 {syncThemes.map((key) => {
                   const lightOn = hasFigmaSyncMode(syncModes, key, 'light')
@@ -378,10 +385,10 @@ export default function FigmaSyncView({
                   )
                 })}
               </div>
+              )}
             </div>
           </div>
         </div>
-      )}
 
       <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface/50 p-5">
         <div className="flex flex-col gap-3">
@@ -396,7 +403,7 @@ export default function FigmaSyncView({
                 type="text"
                 value={fileName}
                 onChange={(event) => onFileNameChange(event.target.value)}
-                placeholder={themeDisplayName(syncThemes[0], themeLabels)}
+                placeholder={syncThemes[0] ? themeDisplayName(syncThemes[0], themeLabels) : store.projectName}
                 aria-describedby={fileHintId}
                 className="min-w-0 flex-1 bg-transparent text-body text-fg outline-none"
               />
@@ -449,8 +456,9 @@ export default function FigmaSyncView({
             <button
               type="button"
               onClick={requestSync}
-              disabled={publishState === 'publishing'}
-              className={`inline-flex min-w-[112px] flex-shrink-0 items-center justify-center gap-2 bg-fg px-3 text-caption font-semibold text-app shadow-sm transition-[opacity,transform] hover:opacity-90 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 ${SYNC_CONTROL} ${SYNC_FOCUS}`}
+              disabled={publishState === 'publishing' || cannotSync}
+              title={cannotSync ? t('Add a theme to My themes first') : undefined}
+              className={`inline-flex min-w-[112px] flex-shrink-0 items-center justify-center gap-2 bg-fg px-3 text-caption font-semibold text-app shadow-sm transition-[opacity,transform] hover:opacity-90 active:scale-[0.98] disabled:opacity-60 ${cannotSync ? 'disabled:cursor-not-allowed' : 'disabled:cursor-wait'} ${SYNC_CONTROL} ${SYNC_FOCUS}`}
             >
               {publishState === 'publishing' ? (
                 <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 16 16" fill="none" aria-hidden>

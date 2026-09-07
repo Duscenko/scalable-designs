@@ -222,10 +222,11 @@ export default function StepGradients({
    *  `sky-9` while a theme whose brand slot is the Sky family is previewed. */
   const tokenNameFor = (tone: number, ap: GradientAppearance = 'light') =>
     `${rampPrefix}${ap === 'dark' ? '-dark' : ''}-${toneNames[tone - 1] ?? tone}`
-  // Three tracks, matching the reference: position · color · row actions.
-  const gridStyle: React.CSSProperties = {
-    gridTemplateColumns: 'minmax(9rem,1fr) minmax(12rem,1.6fr) minmax(10rem,1fr)',
-  }
+  // Three tracks: position · color · row actions. Column mins shrink inside a
+  // narrow Color column (@container on the panel below) so the STOPS header
+  // doesn't collide with "Add gradient stop".
+  const GRID_CLASS =
+    'grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)_2.75rem] @min-[32rem]:grid-cols-[minmax(7rem,1fr)_minmax(10rem,1.6fr)_minmax(8rem,1fr)] @min-[40rem]:grid-cols-[minmax(9rem,1fr)_minmax(12rem,1.6fr)_minmax(10rem,1fr)]'
 
   return (
     <div className="relative h-full flex items-stretch">
@@ -267,7 +268,7 @@ export default function StepGradients({
         </button>
       </VariableCollectionRail>
 
-      <div className="flex-1 min-w-0 flex flex-col bg-app">
+      <div className="@container flex-1 min-w-0 flex flex-col bg-app">
       {/* ── Gradient type + the live bar it produces. Groups | icon-rail is
           FoundationWorkbench. `border-line` since this sits between Groups
           above and the nav + table below. ── */}
@@ -275,10 +276,10 @@ export default function StepGradients({
         {/* No per-table title bar: ColorHub's collection already names this
             tab, and Primitives / Semantics ship without a "Color / X"
             breadcrumb. Type selector + live bar sit flush as row 1. */}
-        <div className="flex-1 min-w-0 flex items-center gap-4 pl-6 lg:pl-8 pr-3 py-5">
+        <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-4 gap-y-3 pl-6 lg:pl-8 pr-3 py-5">
           {selected ? (
             <>
-              <div className="w-[180px] flex-shrink-0 rounded-2xl bg-elevated px-3 py-2.5">
+              <div className="w-[180px] max-w-full flex-shrink-0 rounded-2xl bg-elevated px-3 py-2.5 @max-[36rem]:w-full @max-[36rem]:max-w-[11rem]">
                 <RailSelect
                   value={selected.type}
                   options={TYPE_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
@@ -303,7 +304,7 @@ export default function StepGradients({
                   swapping one. Each half sits on ITS OWN page (`light`/`dark`
                   classes, both defined in index.css) so neither is judged on
                   the wrong backdrop, and clicking a half previews it. */}
-              <div className="flex-1 min-w-0 flex items-stretch gap-2">
+              <div className="flex-1 min-w-[9rem] basis-[9rem] flex items-stretch gap-2 @max-[36rem]:w-full @max-[36rem]:min-w-0 @max-[36rem]:basis-full">
                 {(['light', 'dark'] as const).map((ap) => (
                   <button
                     key={ap}
@@ -323,24 +324,24 @@ export default function StepGradients({
                 ))}
               </div>
               {selected.type === 'linear' && (
-                <label className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-caption text-fg-faint">Angle</span>
+                <label className="flex items-center gap-2 flex-shrink-0 @max-[36rem]:w-full @max-[36rem]:justify-between">
+                  <span className="text-caption text-fg-faint @max-[28rem]:sr-only">Angle</span>
                   <input
                     type="range"
                     min={0}
                     max={360}
                     value={selected.angle}
                     onChange={(e) => patch({ angle: Number(e.target.value) })}
-                    className="w-28 accent-fg"
+                    className="w-28 max-w-full accent-fg @max-[36rem]:flex-1 @max-[36rem]:min-w-0 @max-[28rem]:w-24"
                     aria-label="Gradient angle"
                   />
-                  <span className="text-body font-mono tabular-nums text-fg w-9 text-right">{selected.angle}°</span>
+                  <span className="text-body font-mono tabular-nums text-fg w-9 text-right flex-shrink-0">{selected.angle}°</span>
                 </label>
               )}
               {/* Gear — the name, CSS var and surface assignments. Mirrors
                   Primitives' scale-settings gear in the same spot: the
                   "everything else about this thing" affordance. */}
-              <div ref={settingsRef} className="relative flex-shrink-0">
+              <div ref={settingsRef} className="relative flex-shrink-0 @max-[36rem]:ml-auto">
                 <button
                   type="button"
                   onClick={() => setSettingsOpen((o) => !o)}
@@ -394,19 +395,18 @@ export default function StepGradients({
       <div className="flex-1 min-h-0 flex items-stretch">
         <div className="flex-1 min-w-0 overflow-auto bg-app">
           {selected ? (
-            <div className="min-w-[28rem]">
+            <div className="min-w-0 w-full">
               <div
-                className="grid items-stretch h-[52px] border-b border-line bg-app text-mini font-semibold uppercase tracking-widest text-fg-faint sticky top-0 z-10"
-                style={gridStyle}
+                className={`${GRID_CLASS} items-stretch min-h-[52px] border-b border-line bg-app text-mini font-semibold uppercase tracking-widest text-fg-faint sticky top-0 z-10`}
               >
-                <span className="flex items-center pl-4 border-r border-line">Transparency</span>
-                <span className="flex items-center gap-2 border-r border-line px-4">
-                  Stops
+                <span className="flex items-center pl-3 @min-[32rem]:pl-4 border-r border-line min-w-0 truncate">Transparency</span>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 border-r border-line px-3 @min-[32rem]:px-4 min-w-0">
+                  <span className="flex-shrink-0">Stops</span>
                   {/* Which appearance the colour cells below EDIT. Same eye
                       affordance and the same `previewTheme` state as the
                       Primitives table's column headers, so "which one am I
                       looking at" is one concept app-wide. */}
-                  <span className="flex items-center gap-0.5 normal-case tracking-normal">
+                  <span className="flex items-center gap-0.5 normal-case tracking-normal flex-shrink-0">
                     {(['light', 'dark'] as const).map((ap) => (
                       <button
                         key={ap}
@@ -437,7 +437,7 @@ export default function StepGradients({
                       title={locked
                         ? 'Colors follow the accent. Unlock to edit the stops by hand.'
                         : 'Relink to the accent — replaces the stops with accent-derived colors.'}
-                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-mini font-medium normal-case tracking-normal transition-colors ${
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-mini font-medium normal-case tracking-normal transition-colors max-w-full ${
                         locked ? 'bg-elevated text-fg ring-1 ring-line' : 'text-fg-faint hover:text-fg'
                       }`}
                     >
@@ -446,12 +446,14 @@ export default function StepGradients({
                       ) : (
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>
                       )}
-                      {locked ? 'Linked to accent' : 'Link to accent'}
+                      <span className="truncate @max-[34rem]:sr-only">
+                        {locked ? 'Linked to accent' : 'Link to accent'}
+                      </span>
                     </button>
                   )}
                 </span>
-                <span className="flex items-center justify-between gap-2 px-4 py-1.5">
-                  Add gradient stop
+                <span className="flex items-center justify-end gap-2 px-2 @min-[32rem]:px-4 py-1.5 min-w-0">
+                  <span className="truncate @max-[30rem]:sr-only">Add gradient stop</span>
                   <button
                     type="button"
                     onClick={addStop}
@@ -475,11 +477,10 @@ export default function StepGradients({
               {selected.stops.map((s, i) => (
                 <div
                   key={i}
-                  className={tableRowClass(i, 'grid')}
-                  style={gridStyle}
+                  className={`${GRID_CLASS} ${tableRowClass(i, 'grid')}`}
                 >
-                  <div className="pl-4 pr-3 py-2.5 border-r border-line">
-                    <div className="flex items-center w-24 px-2 py-1.5 rounded-lg border border-line bg-surface">
+                  <div className="pl-3 @min-[32rem]:pl-4 pr-2 @min-[32rem]:pr-3 py-2.5 border-r border-line">
+                    <div className="flex items-center w-full max-w-24 px-2 py-1.5 rounded-lg border border-line bg-surface">
                       <input
                         type="number"
                         min={0}
@@ -498,7 +499,7 @@ export default function StepGradients({
                       colour, so it keeps the raw picker + hex. Showing bare hex
                       for a linked stop was the bug: it named a value that lived
                       nowhere in the system. */}
-                  <div className="flex items-center gap-2.5 px-4 py-2.5 border-r border-line min-w-0">
+                  <div className="flex items-center gap-2.5 px-3 @min-[32rem]:px-4 py-2.5 border-r border-line min-w-0">
                     {locked && typeof s.tone === 'number' ? (
                       <>
                         <span
@@ -557,7 +558,7 @@ export default function StepGradients({
                     )}
                   </div>
 
-                  <div className="flex items-center px-4 py-2.5">
+                  <div className="flex items-center justify-center px-2 @min-[32rem]:px-4 py-2.5">
                     <button
                       type="button"
                       onClick={() => removeStop(i)}

@@ -17,7 +17,7 @@ import FoundationWorkbench from '../components/configurator/FoundationWorkbench'
 import type { VariableCollectionItem, VariableCollectionKey } from '../components/configurator/VariableCollectionRail'
 import ThemeCodeFormat, { resolveCodeTheme, type CodeThemeScope } from '../components/configurator/ThemeCodeFormat'
 import ThemeLibraryRail, { THEME_LIBRARY_WIDTH, myThemeKeys } from '../components/configurator/ThemeLibraryRail'
-import { resolveListedTheme } from '../lib/themeLibrary'
+import { figmaSyncThemeKeys, resolveListedTheme } from '../lib/themeLibrary'
 import { SHELL_CHROME, WORKSPACE_CHROME, WORKSPACE_CHIP_ACTIVE, WORKSPACE_CHIP_HOVER, WORKSPACE_CHIP_REST, WORKSPACE_TAB_TRACK } from '../components/configurator/themeWorkspaceLayout'
 import { stylePreviewBrandRamp, type StylePreview } from '../lib/stylePreviewOverlay'
 import ThemePreviewHub, { type ThemeHubSurface } from '../components/configurator/ThemePreviewHub'
@@ -798,23 +798,28 @@ export default function Configurator() {
   const previewAppearance = previewSelection.theme === previewTheme
     ? previewSelection.appearance
     : (themeKinds[previewTheme] ?? 'light')
-  const syncThemes = useMemo(() => {
-    const own = myThemeKeys(themeOrder, themes)
-    return own.length ? own : themeOrder.filter((key) => Boolean(themes[key]))
-  }, [themeOrder, themes])
-  const [figmaFileName, setFigmaFileName] = useState(() =>
-    themeDisplayName(syncThemes[0] ?? previewTheme, store.themeLabels),
+  const syncThemes = useMemo(
+    () => figmaSyncThemeKeys(themeOrder, themes),
+    [themeOrder, themes],
   )
+  const defaultFigmaFileName = syncThemes[0]
+    ? themeDisplayName(syncThemes[0], store.themeLabels)
+    : store.projectName
+  const [figmaFileName, setFigmaFileName] = useState(defaultFigmaFileName)
   const [figmaFileNameDirty, setFigmaFileNameDirty] = useState(false)
   const [figmaSyncModes, setFigmaSyncModes] = useState<FigmaSyncMode[]>(() =>
     defaultFigmaSyncModes(syncThemes, themeKinds),
   )
   const syncThemeKey = syncThemes.join('|')
   useEffect(() => {
-    if (!figmaFileNameDirty && syncThemes[0]) {
-      setFigmaFileName(themeDisplayName(syncThemes[0], store.themeLabels))
+    if (!figmaFileNameDirty) {
+      setFigmaFileName(
+        syncThemes[0]
+          ? themeDisplayName(syncThemes[0], store.themeLabels)
+          : store.projectName,
+      )
     }
-  }, [figmaFileNameDirty, syncThemes, store.themeLabels, syncThemeKey])
+  }, [figmaFileNameDirty, syncThemes, store.themeLabels, store.projectName, syncThemeKey])
   useEffect(() => {
     setFigmaSyncModes((current) => {
       const valid = current.filter((mode) => syncThemes.includes(mode.theme))
@@ -1234,7 +1239,7 @@ export default function Configurator() {
   }, [previewTheme])
   const publishFigmaNow = useCallback(() => {
     commitVisit()
-    if (!isLiveEnvironment() || figmaPublishState === 'publishing') return
+    if (!isLiveEnvironment() || figmaPublishState === 'publishing' || !figmaSyncModes.length) return
     handleFigmaPublishState('publishing')
     void publishTokens({ ...figmaPublishBase, section: workspaceSection }).then((result) => handleFigmaPublishState(result.ok ? 'done' : 'error', result.reason))
   }, [commitVisit, figmaPublishState, handleFigmaPublishState, figmaPublishBase, workspaceSection])

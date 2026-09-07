@@ -12,6 +12,10 @@ import {
 } from '../figmaSyncModes'
 
 describe('figma sync modes', () => {
+  it('defaults to nothing when My themes is empty', () => {
+    expect(defaultFigmaSyncModes([], { light: 'light', dark: 'dark' })).toEqual([])
+  })
+
   it('defaults to the first theme in both appearances', () => {
     expect(defaultFigmaSyncModes(['nature', 'core'], { nature: 'light' })).toEqual([
       { theme: 'nature', appearance: 'light' },

@@ -232,6 +232,8 @@ export function useAutoFigmaSync(
     }
 
     const schedule = () => {
+      // Empty modes = My themes is empty. Do not republish scaffold light/dark.
+      if (Array.isArray(opts.modes) && opts.modes.length === 0) return
       if (activeTheme) setActiveThemeHint(activeTheme)
       const payload = generateTokenJSON(undefined, {
         ...(publishOpts.theme ? { theme: publishOpts.theme } : {}),

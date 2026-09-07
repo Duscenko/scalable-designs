@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useDesignStore } from '../../store/useDesignStore'
 import { themeBrandRamp, themeDisplayName } from '../../lib/themeSources'
 import { BASE_TONE } from '../../lib/colorUtils'
 import { useI18n } from '../../lib/i18n'
 import { COLOR_RAIL_WIDTH } from './colorControls'
 import { WORKSPACE_CHROME } from './themeWorkspaceLayout'
-import { myThemeKeys, DeleteThemeConfirmation, LibraryOptionsIcon } from './ThemeLibraryRail'
+import { myThemeKeys } from './ThemeLibraryRail'
 
 export type CodeThemeScope = string
 
@@ -49,44 +47,6 @@ function ArrowIcon() {
   )
 }
 
-function ThemeRowMenu({
-  onOpenInCode,
-  onDelete,
-}: {
-  onOpenInCode: () => void
-  onDelete: () => void
-}) {
-  const { t } = useI18n()
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.98, y: -4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.98, y: -4 }}
-      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-      className="absolute right-0 top-full z-[60] mt-1 w-44 origin-top-right overflow-hidden rounded-lg border border-line-strong bg-app p-1.5 shadow-xl"
-      role="menu"
-      aria-label={t('Theme options')}
-    >
-      <button
-        type="button"
-        role="menuitem"
-        onClick={onOpenInCode}
-        className="flex h-8 w-full items-center rounded-md px-2.5 text-left text-caption font-medium text-fg-muted transition-colors hover:bg-elevated hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ui/50"
-      >
-        {t('Open in code')}
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        onClick={onDelete}
-        className="flex h-8 w-full items-center rounded-md px-2.5 text-left text-caption font-medium text-status-danger transition-colors hover:bg-status-danger/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-status-danger/50"
-      >
-        {t('Delete')}
-      </button>
-    </motion.div>
-  )
-}
-
 /**
  * Get code's left column — which ONE theme the CSS / Markdown / Agent
  * context file is scoped to. Radio only, no All themes: a mixed file
@@ -110,41 +70,13 @@ export default function ThemeCodeScopeRail({
 }) {
   const { t } = useI18n()
   const store = useDesignStore()
-  const { themeOrder, themes, themeKinds, themeLabels, themeSources, removeTheme } = store
+  const { themeOrder, themes, themeKinds, themeLabels, themeSources } = store
   const listed = myThemeKeys(themeOrder, themes)
   const selected = resolveCodeTheme(listed, scope, previewTheme)
-  const [menuKey, setMenuKey] = useState<string | null>(null)
-  const [deleteKey, setDeleteKey] = useState<string | null>(null)
-  const menuRootRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!menuKey) return
-    const onPointerDown = (event: PointerEvent) => {
-      if (!menuRootRef.current?.contains(event.target as Node)) setMenuKey(null)
-    }
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuKey(null) }
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [menuKey])
 
   const selectTheme = (key: string) => {
     onScopeChange(key)
     if (key !== previewTheme) onPreviewThemeChange(key)
-  }
-
-  const deleteTheme = (key: string) => {
-    const available = themeOrder.filter((theme) => themes[theme])
-    const nextPreview = available.find((theme) => theme !== key)
-    const nextOwn = listed.find((theme) => theme !== key) ?? ''
-    if (previewTheme === key && nextPreview) onPreviewThemeChange(nextPreview)
-    if (selected === key) onScopeChange(nextOwn)
-    removeTheme(key)
-    setDeleteKey(null)
-    setMenuKey(null)
   }
 
   return (
@@ -167,7 +99,7 @@ export default function ThemeCodeScopeRail({
         </button>
       </div>
 
-      <div ref={menuRootRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 py-2" role="radiogroup" aria-label={t('Themes')}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 py-2" role="radiogroup" aria-label={t('Themes')}>
         {listed.length === 0 ? (
           <p className="px-2 py-3 text-caption text-fg-faint">{t('Add a theme to get its code.')}</p>
         ) : listed.map((key) => {
@@ -176,63 +108,22 @@ export default function ThemeCodeScopeRail({
           const swatch = ramp?.[BASE_TONE] ?? store.primaryColor
           const name = themeDisplayName(key, themeLabels)
           return (
-            <div key={key} className="flex flex-col gap-1">
-              <div className="group relative flex items-center gap-0.5">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  onClick={() => selectTheme(key)}
-                  className={`flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50 ${
-                    isSelected ? 'bg-app text-fg shadow-sm' : 'text-fg-muted hover:bg-elevated hover:text-fg'
-                  }`}
-                >
-                  <RadioMark selected={isSelected} />
-                  <ThemeSwatch hex={swatch} />
-                  <span className={`min-w-0 flex-1 truncate text-body ${isSelected ? 'font-semibold text-fg' : 'font-medium'}`}>
-                    {name}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMenuKey((open) => (open === key ? null : key))}
-                  aria-label={t('Theme options')}
-                  title={t('Theme options')}
-                  aria-haspopup="menu"
-                  aria-expanded={menuKey === key}
-                  className={`grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg text-fg-faint transition-[color,background-color,opacity] hover:bg-elevated hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50 ${
-                    menuKey === key || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
-                  } ${menuKey === key ? 'bg-elevated text-fg' : ''}`}
-                >
-                  <LibraryOptionsIcon />
-                </button>
-                <AnimatePresence>
-                  {menuKey === key && (
-                    <ThemeRowMenu
-                      onOpenInCode={() => {
-                        setMenuKey(null)
-                        selectTheme(key)
-                      }}
-                      onDelete={() => {
-                        setMenuKey(null)
-                        setDeleteKey(key)
-                      }}
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
-              <AnimatePresence initial={false}>
-                {deleteKey === key && (
-                  <DeleteThemeConfirmation
-                    name={name}
-                    isPreviewed={previewTheme === key}
-                    isLast={listed.length <= 1}
-                    onCancel={() => setDeleteKey(null)}
-                    onConfirm={() => deleteTheme(key)}
-                  />
-                )}
-              </AnimatePresence>
-            </div>
+            <button
+              key={key}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              onClick={() => selectTheme(key)}
+              className={`flex min-w-0 w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50 ${
+                isSelected ? 'bg-app text-fg shadow-sm' : 'text-fg-muted hover:bg-elevated hover:text-fg'
+              }`}
+            >
+              <RadioMark selected={isSelected} />
+              <ThemeSwatch hex={swatch} />
+              <span className={`min-w-0 flex-1 truncate text-body ${isSelected ? 'font-semibold text-fg' : 'font-medium'}`}>
+                {name}
+              </span>
+            </button>
           )
         })}
       </div>

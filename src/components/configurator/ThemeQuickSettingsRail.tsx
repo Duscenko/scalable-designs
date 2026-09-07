@@ -198,6 +198,14 @@ export function ThemeIdentityBand({
   )
 }
 
+/** Mask that dissolves a solid `--tab-bar` fill. A gradient *color*
+ *  toward `transparent` interpolates to transparent BLACK (Tailwind v4
+ *  does this `in oklab`), which leaves a 1px lighter seam on the opaque
+ *  edge — the gap sitting on this fade's top. Masking keeps every visible
+ *  pixel the chrome colour; only coverage fades. */
+const RAIL_EDGE_MASK = (toward: 'bottom' | 'top') =>
+  `linear-gradient(to ${toward}, #000 0 14px, transparent)`
+
 /** Edge fades on a rail scroll body. The rail is `WORKSPACE_CHROME`
  *  (`bg-tab-bar`); dissolving from `--app` painted a darker bar over the first
  *  row — the same mismatch ThemeCodeFormat already documents. Top only after
@@ -240,9 +248,14 @@ export function ThemeRailScrollRegion({
   const fade = (edge: 'top' | 'bottom', on: boolean) => (
     <div
       aria-hidden
-      className={`pointer-events-none absolute inset-x-0 z-10 h-8 from-tab-bar to-transparent transition-opacity duration-150 ${
-        edge === 'top' ? 'top-0 bg-gradient-to-b' : 'bottom-0 bg-gradient-to-t'
+      className={`pointer-events-none absolute inset-x-0 z-10 h-11 transition-opacity duration-150 ${
+        edge === 'top' ? '-top-px' : '-bottom-px'
       } ${on ? 'opacity-100' : 'opacity-0'}`}
+      style={{
+        background: 'var(--tab-bar)',
+        WebkitMaskImage: RAIL_EDGE_MASK(edge === 'top' ? 'bottom' : 'top'),
+        maskImage: RAIL_EDGE_MASK(edge === 'top' ? 'bottom' : 'top'),
+      }}
     />
   )
 
@@ -1510,7 +1523,7 @@ export default function ThemeQuickSettingsRail({
           disabled-when-idle — a permanent control that is dead most of the time
           is the thing this fix exists to remove. */}
       {tryOn && (
-        <div className="flex-shrink-0 px-3 pb-3">
+        <div className="flex-shrink-0 px-3">
           <button
             type="button"
             onClick={addTryOnToSystem}

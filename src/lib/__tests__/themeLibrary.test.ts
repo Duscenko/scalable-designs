@@ -5,6 +5,7 @@ import {
   canAddMyTheme,
   isScaffoldTheme,
   myThemeKeys,
+  figmaSyncThemeKeys,
   myThemeRoom,
   resolveListedTheme,
   visibleMyThemes,
@@ -14,6 +15,10 @@ describe('myThemeKeys', () => {
   it('drops the built-in light/dark scaffolding', () => {
     expect(myThemeKeys(['light', 'dark', 'core-copy'], { light: {}, dark: {}, 'core-copy': {} }))
       .toEqual(['core-copy'])
+  })
+
+  it('File & modes lists nothing when only scaffolding exists', () => {
+    expect(figmaSyncThemeKeys(['light', 'dark'], { light: {}, dark: {} })).toEqual([])
   })
 })
 

@@ -21,6 +21,11 @@ export function myThemeKeys(themeOrder: string[], themes: Record<string, unknown
   return themeOrder.filter((key) => !isScaffoldTheme(key) && Boolean(themes[key]))
 }
 
+/** File & modes / Figma publish list. Same as `myThemeKeys` on purpose —
+ *  falling back to `themeOrder` (scaffold `light`/`dark`) painted a
+ *  default-blue "Dark" row on an empty My themes. A try-on is not a theme. */
+export const figmaSyncThemeKeys = myThemeKeys
+
 /**
  * Theme the workspace / sync should treat as current. When My themes exist,
  * scaffolding `light`/`dark` are never chosen — they were minting leftover

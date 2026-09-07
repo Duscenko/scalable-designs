@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { AVATAR_STACK_HUES, Live, PhosphorWeightProvider, SPECIMENS, TokenIcon, type IconOpts, type SpecimenProps } from '../../configurator/docs/specimens'
+import { Live, PhosphorWeightProvider, SPECIMENS, TokenIcon, type IconOpts, type SpecimenProps } from '../../configurator/docs/specimens'
 import { TokenInspector, inspectGroupAttrs, useInspectorActive } from './TokenInspector'
 import {
   cardSurfaceStyle,
@@ -50,7 +50,6 @@ const Badge = inspectable('Badge')
 const InputOTP = inspectable('InputOTP')
 const TextLink = inspectable('TextLink')
 const Segmented = inspectable('SegmentedControl')
-const ContextMenu = inspectable('ContextMenu')
 const Toast = inspectable('Toast')
 const TabMenu = inspectable('TabMenu')
 const Progress = inspectable('Progress')
@@ -136,8 +135,7 @@ function ScaledModule({
   appearance?: ThemeAppearance
   children: ReactNode
   chrome?: boolean
-  /** When false the photograph can spill past the frame — floating menus
-   *  (ContextMenu) have no card of their own and break when squeezed into one. */
+  /** When false the photograph can spill past the frame. */
   clip?: boolean
   /** Shadow ramp step on the unscaled frame. Defaults to `sm` when chrome. */
   elev?: string | false
@@ -322,26 +320,6 @@ export function SystemCollage({
         <Slider t={tile(0)} v={{}} w="100%" />
       </ScaledModule>
 
-      <ScaledModule t={tile(1)} appearance={appearanceAt(1)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {/* Three hue-rotated gradient avatars, then ONE accent-tint + initials
-            default, then the count. Both avatar kinds are shown; the run of
-            three keeps the gradient family (see AVATAR_STACK_HUES) readable as
-            a set before the default breaks the rhythm. */}
-        {AVATAR_STACK_HUES.slice(0, 4).map((hue, i) => (
-          <span key={hue} style={{ marginLeft: i === 0 ? 0 : -10, zIndex: 6 - i, position: 'relative' }}>
-            <Avatar
-              t={tile(1)}
-              v={i < 3
-                ? { Size: 'SM', Variant: 'Gradient', Hue: String(hue) }
-                : { Size: 'SM' }}
-            />
-          </span>
-        ))}
-        <span style={{ marginLeft: 8 }}>
-          <Badge t={tile(1)} v={{ Style: 'Soft', Color: 'Neutral', Dot: 'False' }}>+5</Badge>
-        </span>
-      </ScaledModule>
-
       <ScaledModule t={tile(2)} appearance={appearanceAt(2)}>
         <span style={{ ...typeStyleOf(tile(2), 'heading-sm'), color: tile(2).neutralText }}>{translate('Verify account')}</span>
         <InputOTP t={tile(2)} v={{ State: 'Filled', Size: 'SM' }} />
@@ -503,10 +481,6 @@ export function SystemCollage({
           </Card>
         </ScaledModule>
       ))}
-
-      <ScaledModule t={tile(11)} appearance={appearanceAt(11)} chrome={false} clip={false} elev="sm">
-        <ContextMenu t={tile(11)} v={{}} w="100%" elev={false} />
-      </ScaledModule>
 
       <ScaledModule t={tile(12)} appearance={appearanceAt(12)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ ...typeStyleOf(tile(12), 'body-sm'), color: tile(12).neutralText }}>{translate('You have 2 credits left')}</span>
