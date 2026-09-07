@@ -187,7 +187,7 @@ export function randomTheme(input: RandomThemeInput): RandomThemeRecipe {
 
 /** Module count on the Theme Preview artefacts board — keep in sync with
  *  `SystemCollage`'s `ScaledModule` rows. */
-export const COLLAGE_TILE_COUNT = 25
+export const COLLAGE_TILE_COUNT = 24
 
 /** Flip the whole artefacts board to light or dark — never a per-tile mix. */
 export function randomBoardAppearance(

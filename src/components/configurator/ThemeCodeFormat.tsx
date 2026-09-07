@@ -291,14 +291,14 @@ export default function ThemeCodeFormat({
   scope = '',
   onScopeChange,
   onPreviewThemeChange,
-  onOpenThemeLibrary,
+  onBack,
   showBreadcrumb = false,
 }: {
   previewTheme: string
   scope?: CodeThemeScope
   onScopeChange: (scope: CodeThemeScope) => void
   onPreviewThemeChange: (theme: string) => void
-  onOpenThemeLibrary: () => void
+  onBack: () => void
   showBreadcrumb?: boolean
 }) {
   const { t } = useI18n()
@@ -356,7 +356,7 @@ export default function ThemeCodeFormat({
         previewTheme={previewTheme}
         onScopeChange={onScopeChange}
         onPreviewThemeChange={onPreviewThemeChange}
-        onOpenThemeLibrary={onOpenThemeLibrary}
+        onBack={onBack}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {showBreadcrumb ? (

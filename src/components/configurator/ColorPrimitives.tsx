@@ -1418,7 +1418,12 @@ export default function ColorPrimitives({
 
   // When the previewed theme changes, land on THAT theme's accent so the
   // quick-edit strip and table can't show one theme's preview beside another
-  // theme's ramp. Runs on `previewTheme` only — NOT on every family click.
+  // theme's ramp. Runs on `previewTheme` (and that theme's brand slot) only —
+  // NOT on every family rebuild. `themeAccentFamilyKey` closes over `families`,
+  // which is a new array after any status retint; listing it here snapped the
+  // table back to Accent the moment you edited Success, so the picker showed
+  // the new green and the ramp stayed the previous purple.
+  const previewBrand = themeSources[previewTheme]?.brand
   useEffect(() => {
     if (!managedThemesExternally) return
     const accentKey = themeAccentFamilyKey(previewTheme)
@@ -1426,7 +1431,8 @@ export default function ColorPrimitives({
       setActiveFamily(accentKey)
       setExpandedTone(null)
     }
-  }, [managedThemesExternally, previewTheme, themeAccentFamilyKey])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [managedThemesExternally, previewTheme, previewBrand])
 
   // A Semantics ramp-grid label ("edit this ramp in the table") asked to select
   // a family. Runs AFTER the theme→accent effect above so an explicit request

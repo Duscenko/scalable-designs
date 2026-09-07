@@ -374,15 +374,31 @@ export function SystemCollage({
         </div>
       </ScaledModule>
 
-      <ScaledModule t={tile(4)} appearance={appearanceAt(4)}>
+      <ScaledModule
+        t={tile(4)}
+        appearance={appearanceAt(4)}
+        style={{ gap: gap(tile(4), 'gap-group', '16px') }}
+      >
         <div
           className="grid w-full grid-cols-2 justify-items-center"
-          style={{ gap: gap(tile(4), 'gap-group', '16px') }}
+          style={{ gap: gap(tile(4), 'gap-control', '8px') }}
         >
           <Badge t={tile(4)} v={{ Style: 'Soft', Color: 'Error', Size: 'SM' }}>{translate('Critical')}</Badge>
           <Badge t={tile(4)} v={{ Style: 'Soft', Color: 'Warning', Size: 'SM' }}>{translate('Warning')}</Badge>
           <Badge t={tile(4)} v={{ Style: 'Soft', Color: 'Success', Size: 'SM' }}>{translate('Success')}</Badge>
           <Badge t={tile(4)} v={{ Style: 'Soft', Color: 'Info', Size: 'SM' }}>{translate('Info')}</Badge>
+        </div>
+        <div
+          className="flex flex-wrap items-center"
+          style={{
+            gap: gap(tile(4), 'gap-control', '8px'),
+            paddingTop: gap(tile(4), 'gap-group', '16px'),
+            borderTop: `${strokeRoleOf(tile(4), 'divider', '1px')} solid ${tile(4).borderDefault || tile(4).border}`,
+          }}
+        >
+          <StatusBadge t={tile(4)} v={{ Status: 'Online' }} />
+          <StatusBadge t={tile(4)} v={{ Status: 'Busy' }} />
+          <Chip t={tile(4)} v={{ Selected: 'True' }} />
         </div>
       </ScaledModule>
 
@@ -396,6 +412,10 @@ export function SystemCollage({
           <p style={{ margin: 0, ...typeStyleOf(tile(5), 'body-sm', { leading: true }), color: muted(5) }}>
             {translate('Sign in to continue to your workspace.')}
           </p>
+        </div>
+        <div className="flex w-full min-w-0 flex-col" style={{ gap: gap(tile(5), 'gap-group', '16px') }}>
+          <Input t={tile(5)} v={{ Type: 'E-Mail', State: 'Filled', Size: 'SM' }} w="100%" />
+          <Input t={tile(5)} v={{ Type: 'Password', Size: 'SM' }} w="100%" />
         </div>
         <InspectableLive c="Button" t={tile(5)} v={{ Style: 'Solid', Size: 'MD' }} w="100%">{translate('Get Started')}</InspectableLive>
         <div className="flex items-center" style={{ gap: gap(tile(5), 'gap-control', '8px') }}>
@@ -526,12 +546,6 @@ export function SystemCollage({
         <Progress t={tile(16)} v={{}} w="100%" />
       </ScaledModule>
 
-      <ScaledModule t={tile(17)} appearance={appearanceAt(17)} style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
-        <StatusBadge t={tile(17)} v={{ Status: 'Online' }} />
-        <StatusBadge t={tile(17)} v={{ Status: 'Busy' }} />
-        <Chip t={tile(17)} v={{ Selected: 'True' }} />
-      </ScaledModule>
-
       <ScaledModule t={tile(18)} appearance={appearanceAt(18)} chrome={false} elev="sm">
         <Sidebar t={tile(18)} v={{}} w="100%" />
       </ScaledModule>
@@ -548,16 +562,25 @@ export function SystemCollage({
         <FileUpload t={tile(21)} v={{}} w="100%" />
       </ScaledModule>
 
-      <ScaledModule t={tile(22)} appearance={appearanceAt(22)}>
+      <ScaledModule
+        t={tile(22)}
+        appearance={appearanceAt(22)}
+        style={{ gap: gap(tile(22), 'gap-group', '16px') }}
+      >
         <Stepper t={tile(22)} v={{}} w="100%" />
+        <div
+          className="flex w-full justify-center"
+          style={{
+            paddingTop: gap(tile(22), 'gap-group', '16px'),
+            borderTop: `${strokeRoleOf(tile(22), 'divider', '1px')} solid ${tile(22).borderDefault || tile(22).border}`,
+          }}
+        >
+          <Pagination t={tile(22)} v={{}} />
+        </div>
       </ScaledModule>
 
-      <ScaledModule t={tile(23)} appearance={appearanceAt(23)} style={{ alignItems: 'center' }}>
-        <Pagination t={tile(23)} v={{}} />
-      </ScaledModule>
-
-      <ScaledModule t={tile(24)} appearance={appearanceAt(24)} style={{ alignItems: 'center', justifyContent: 'center', minHeight: 72 }}>
-        <Spinner t={tile(24)} v={{ Size: 'MD' }} />
+      <ScaledModule t={tile(23)} appearance={appearanceAt(23)} style={{ alignItems: 'center', justifyContent: 'center', minHeight: 72 }}>
+        <Spinner t={tile(23)} v={{ Size: 'MD' }} />
       </ScaledModule>
     </div>
   )

@@ -1811,7 +1811,7 @@ export default function Configurator() {
                       if (next) changePreviewTheme(next)
                     }}
                     onPreviewThemeChange={changePreviewTheme}
-                    onOpenThemeLibrary={openThemeLibraryFromCode}
+                    onBack={openThemeLibraryFromCode}
                   />
                 </motion.div>
               ) : foundationCanvas ? (

@@ -39,10 +39,10 @@ function ThemeSwatch({ hex }: { hex: string }) {
   )
 }
 
-function ArrowIcon() {
+function BackIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4.5 2.5 8 6l-3.5 3.5" />
+      <path d="M7.5 2.5 4 6l3.5 3.5" />
     </svg>
   )
 }
@@ -60,13 +60,13 @@ export default function ThemeCodeScopeRail({
   previewTheme,
   onScopeChange,
   onPreviewThemeChange,
-  onOpenThemeLibrary,
+  onBack,
 }: {
   scope: CodeThemeScope
   previewTheme: string
   onScopeChange: (scope: CodeThemeScope) => void
   onPreviewThemeChange: (theme: string) => void
-  onOpenThemeLibrary: () => void
+  onBack: () => void
 }) {
   const { t } = useI18n()
   const store = useDesignStore()
@@ -85,18 +85,18 @@ export default function ThemeCodeScopeRail({
       style={{ width: COLOR_RAIL_WIDTH }}
       aria-label={t('Themes')}
     >
-      <div className="flex h-[52px] flex-shrink-0 items-center justify-between gap-2 border-b border-line pl-4 pr-3">
-        <h2 className="min-w-0 truncate text-caption font-semibold text-fg-muted">{t('Themes')}</h2>
+      <div className="flex h-[52px] flex-shrink-0 items-center justify-between gap-2 border-b border-line pl-3 pr-4">
         <button
           type="button"
-          onClick={onOpenThemeLibrary}
-          aria-label={t('Themes library')}
-          title={t('Themes library')}
-          className="inline-flex flex-shrink-0 items-center gap-0.5 text-mini font-medium text-fg-faint transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50"
+          onClick={onBack}
+          aria-label={t('Back to Theme preview')}
+          title={t('Back to Theme preview')}
+          className="inline-flex min-w-0 items-center gap-1 rounded-md px-1 py-1 -ml-0.5 text-caption font-semibold text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50"
         >
-          {t('Themes library')}
-          <ArrowIcon />
+          <BackIcon />
+          <span className="truncate">{t('Back')}</span>
         </button>
+        <h2 className="min-w-0 truncate text-caption font-semibold text-fg-muted">{t('Themes')}</h2>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 py-2" role="radiogroup" aria-label={t('Themes')}>

@@ -2071,7 +2071,19 @@ function PaginationSpecimen({ t }: { t: PreviewTokens }) {
     </span>
   )
   return (
-    <nav aria-label="Pagination" style={{ ...baseFont(t), display: 'flex', alignItems: 'center', gap: 2 }}>
+    <nav
+      aria-label="Pagination"
+      style={{
+        ...baseFont(t),
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        padding: 4,
+        borderRadius: 999,
+        background: raisedBg(t),
+        border: `${strokeControl(t)} solid ${t.borderDefault ?? '#e9eaeb'}`,
+      }}
+    >
       {cell('‹')}{cell('1')}{cell('2', true)}{cell('3')}{cell('…', false, true)}{cell('8')}{cell('›')}
     </nav>
   )
@@ -2094,9 +2106,9 @@ function StepperSpecimen({ t, w }: SpecimenProps) {
                 width: 28, height: 28, borderRadius: 999,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 ...typeOf(t, 'button'),
-                background: s.state === 'done' ? t.brandSolid : s.state === 'current' ? soft(t, t.brandSolid) : t.neutralFill,
-                color: s.state === 'done' ? t.onBrand : s.state === 'current' ? t.brandText : t.fgMuted,
-                border: s.state === 'current' ? `${strokeControl(t)} solid ${t.brandSolid}` : `${strokeControl(t)} solid transparent`,
+                background: s.state === 'todo' ? 'transparent' : t.brandSolid,
+                color: s.state === 'todo' ? t.fgMuted : t.onBrand,
+                border: `${strokeControl(t)} solid transparent`,
               }}
             >
               {s.state === 'done' ? (

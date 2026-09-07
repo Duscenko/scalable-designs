@@ -403,10 +403,13 @@ type ShowcaseRow = {
 // hardcoded width (Input 260, InlineAlert 320…) and four of those never fit a
 // half-column — they stacked into a ~550px tower that dragged the short section
 // beside it to the same height, mostly dead space (measured: Button 548px for
-// ~120px of content). Order is the reading order of a system: the action, its
-// labels, identity, then the messages.
+// ~120px of content).
+//
+// Button is NOT a row. The All board already leads with Actions (Style × Color).
+// A second "Button" strip under that was the same component twice — the rail
+// said Button, the board said Actions, the cells all read "Button". Actions
+// is the name; the Button article is still one click off the Actions heading.
 const SHOWCASE: ShowcaseRow[] = [
-  { key: 'Button', axis: 'Style', icons: true },
   { key: 'Badge', axis: 'Color', base: { Style: 'Soft' } },
   { key: 'Avatar', axis: 'Size' },
   { key: 'StatusBadge', axis: 'Status' },
@@ -414,6 +417,17 @@ const SHOWCASE: ShowcaseRow[] = [
   { key: 'InlineAlert', axis: 'Status' },
   { key: 'Toast', axis: 'Status' },
 ]
+
+/** Rail + All-board key for the Style × Color matrix. Not a catalogue key. */
+const ACTIONS_KEY = 'actions'
+
+/** Verb on the Actions matrix — the Color axis already names the intent, so
+ *  stamping "Button" on every cell restated the component instead of the act. */
+const ACTION_LABEL: Record<string, string> = {
+  Brand: 'Save',
+  Danger: 'Delete',
+  Success: 'Confirm',
+}
 
 // ── Basic components — the board at the top of the showcase ────────────────
 // The per-component rows below answer "what does ONE component look like across
@@ -441,32 +455,59 @@ function axisValuesOf(key: string, axis: string): string[] {
  *  the system's own library, so switching Icons repaints the whole row. */
 const BASIC_ICONS = Object.keys(PHOSPHOR_CORE) as IconConcept[]
 
+function boardStroke(tokens: PreviewTokens): string {
+  return tokens.borderDefault || tokens.border || '#eaecf0'
+}
+
+/** One well for the whole kit cover — five nested cards was the disorder.
+ *  Sections inside are captions + a hairline, not another box. */
+function BoardSurface({ tokens, children }: { tokens: PreviewTokens; children: ReactNode }) {
+  return (
+    <div
+      className="px-5 py-5"
+      style={{
+        background: tokens.surface,
+        border: `1px solid ${boardStroke(tokens)}`,
+        borderRadius: 14,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
 function BoardSection({
-  title, note, tokens, children,
+  title, note, tokens, children, divided, onTitleClick,
 }: {
   title: string
   note?: string
   tokens: PreviewTokens
   children: ReactNode
+  /** Hairline above — first section omits it. */
+  divided?: boolean
+  onTitleClick?: () => void
 }) {
+  const headingClass = 'text-caption font-semibold text-fg'
   return (
-    <section className="min-w-0 flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-3 px-0.5">
-        <h4 className="text-caption font-semibold text-fg">{title}</h4>
+    <section
+      className={`min-w-0 flex flex-col gap-2.5 ${divided ? 'mt-5 pt-5' : ''}`}
+      style={divided ? { borderTop: `1px solid ${boardStroke(tokens)}` } : undefined}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        {onTitleClick ? (
+          <button
+            type="button"
+            onClick={onTitleClick}
+            className={`${headingClass} hover:text-accent-ui focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50 rounded transition-colors`}
+          >
+            {title}
+          </button>
+        ) : (
+          <h4 className={headingClass}>{title}</h4>
+        )}
         {note && <span className="flex-shrink-0 text-mini uppercase tracking-widest text-fg-faint">{note}</span>}
       </div>
-      {/* Painted on the SYSTEM's own surface, not the chrome's — the same rule
-          the variant rows follow, so on-surface contrast reads as it ships. */}
-      <div
-        className="p-4"
-        style={{
-          background: tokens.surface,
-          border: `1px solid ${tokens.borderDefault || tokens.border || '#eaecf0'}`,
-          borderRadius: 14,
-        }}
-      >
-        {children}
-      </div>
+      {children}
     </section>
   )
 }
@@ -483,19 +524,62 @@ function BoardCell({ label, tokens, children }: { label?: string; tokens: Previe
   )
 }
 
-function BasicsBoard({ tokens, icons }: { tokens: PreviewTokens; icons: IconOpts }) {
+function ActionsMatrix({ tokens, icons }: { tokens: PreviewTokens; icons: IconOpts }) {
   const buttonStyles = axisValuesOf('Button', 'Style')
   const buttonColors = axisValuesOf('Button', 'Color')
+  if (buttonStyles.length === 0) return null
+  return (
+    // The matrix is the one block wide enough to overflow a narrow column
+    // (measured: 4 button columns + the label track need ~452px against a
+    // 409px panel with both rails open), so it scrolls inside its own
+    // container rather than wrapping, which would break the grid the labels
+    // describe.
+    <div className="overflow-x-auto scrollbar-thin -mx-1 px-1">
+      <div
+        className="grid items-center gap-x-3 gap-y-3"
+        style={{ gridTemplateColumns: `56px repeat(${buttonStyles.length}, minmax(max-content, 1fr))` }}
+      >
+        <span aria-hidden />
+        {buttonStyles.map((style) => (
+          <span key={style} className="text-micro uppercase tracking-wide" style={{ color: tokens.fgMuted }}>{style}</span>
+        ))}
+        {(buttonColors.length ? buttonColors : ['Brand']).map((color) => (
+          <Fragment key={color}>
+            <span className="text-micro uppercase tracking-wide" style={{ color: tokens.fgMuted }}>{color}</span>
+            {buttonStyles.map((style) => (
+              <span key={style} className="flex">
+                <Live c="Button" t={tokens} v={{ Color: color, Style: style, Size: 'SM' }} icons={icons}>
+                  {ACTION_LABEL[color] ?? color}
+                </Live>
+              </span>
+            ))}
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BasicsBoard({
+  tokens, icons, onOpenActions,
+}: {
+  tokens: PreviewTokens
+  icons: IconOpts
+  onOpenActions?: () => void
+}) {
   const badgeColors = axisValuesOf('Badge', 'Color')
   const statuses = axisValuesOf('StatusBadge', 'Status')
   const avatarSizes = axisValuesOf('Avatar', 'Size')
   const alertStatuses = axisValuesOf('InlineAlert', 'Status')
+  const toastStatuses = axisValuesOf('Toast', 'Status')
+  const hasActions = axisValuesOf('Button', 'Style').length > 0
+  let section = 0
 
   return (
-    <div className="flex flex-col gap-5">
+    <BoardSurface tokens={tokens}>
       {BASIC_ICONS.length > 0 && (
-        <BoardSection title="Icons" note={`${BASIC_ICONS.length} core`} tokens={tokens}>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <BoardSection title="Icons" note={`${BASIC_ICONS.length} core`} tokens={tokens} divided={section++ > 0}>
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
             {BASIC_ICONS.map((concept) => (
               <TokenIcon key={concept} t={tokens} concept={concept} size={20} color={tokens.neutralText} />
             ))}
@@ -503,62 +587,29 @@ function BasicsBoard({ tokens, icons }: { tokens: PreviewTokens; icons: IconOpts
         </BoardSection>
       )}
 
-      {buttonStyles.length > 0 && (
-        // Style × Colour, one row per colour — the matrix the reference kit
-        // leads with, and the only place the danger/success intents appear
-        // beside the brand one.
-        <BoardSection title="Actions" note="Style × Color" tokens={tokens}>
-          {/* The matrix is the one block wide enough to overflow a narrow
-              column (measured: 4 button columns + the label track need ~452px
-              against a 409px panel with both rails open), so it scrolls inside
-              its own container — the app's rule for wide content — rather than
-              wrapping, which would break the grid the labels describe.
-              `min-w-max` keeps the rows from squeezing instead of scrolling. */}
-          <div className="overflow-x-auto scrollbar-thin -mx-1 px-1">
-            {/* ONE grid for captions + cells, so a column caption can never
-                drift off the column it names — which is what a per-row flex
-                would allow once the button widths differ by style. */}
-            <div
-              className="grid items-center gap-x-3 gap-y-3"
-              style={{ gridTemplateColumns: `56px repeat(${buttonStyles.length}, minmax(max-content, 1fr))` }}
-            >
-              <span aria-hidden />
-              {buttonStyles.map((style) => (
-                <span key={style} className="text-micro uppercase tracking-wide" style={{ color: tokens.fgMuted }}>{style}</span>
-              ))}
-              {(buttonColors.length ? buttonColors : ['Brand']).map((color) => (
-                // The colour leads its own row, so the block reads as a matrix.
-                // It trailed the buttons before, which put it after the wrap on
-                // a narrow column and read as a caption for the last cell.
-                <Fragment key={color}>
-                  <span className="text-micro uppercase tracking-wide" style={{ color: tokens.fgMuted }}>{color}</span>
-                  {buttonStyles.map((style) => (
-                    <span key={style} className="flex">
-                      <Live c="Button" t={tokens} v={{ Color: color, Style: style, Size: 'SM' }} icons={icons} />
-                    </span>
-                  ))}
-                </Fragment>
-              ))}
-            </div>
-          </div>
+      {hasActions && (
+        <BoardSection title="Actions" note="Style × Color" tokens={tokens} divided={section++ > 0} onTitleClick={onOpenActions}>
+          <ActionsMatrix tokens={tokens} icons={icons} />
         </BoardSection>
       )}
 
-      <BoardSection title="Form controls" tokens={tokens}>
-        <div className="flex flex-wrap items-start gap-x-5 gap-y-4">
-          <BoardCell label="Input" tokens={tokens}><Live c="Input" t={tokens} v={{ Type: 'Default' }} /></BoardCell>
-          <BoardCell label="Select" tokens={tokens}><Live c="Select" t={tokens} v={{}} /></BoardCell>
-          {/* `toggle` makes these actually flip — the axis it names has a
-              True/False pair in the catalogue, which `Live` verifies. */}
-          <BoardCell label="Checkbox" tokens={tokens}><Live c="Checkbox" t={tokens} v={{ Checked: 'True' }} toggle="Checked" /></BoardCell>
-          <BoardCell label="Radio" tokens={tokens}><Live c="Radio" t={tokens} v={{ Checked: 'True' }} toggle="Checked" /></BoardCell>
-          <BoardCell label="Switch" tokens={tokens}><Live c="Toggle" t={tokens} v={{ On: 'True' }} toggle="On" /></BoardCell>
-          <BoardCell label="Slider" tokens={tokens}><Live c="Slider" t={tokens} v={{}} /></BoardCell>
+      <BoardSection title="Form controls" tokens={tokens} divided={section++ > 0}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-start gap-x-5 gap-y-4">
+            <Live c="Input" t={tokens} v={{ Type: 'Default' }} />
+            <Live c="Select" t={tokens} v={{}} />
+          </div>
+          <div className="flex flex-wrap items-start gap-x-5 gap-y-4">
+            <BoardCell label="Checkbox" tokens={tokens}><Live c="Checkbox" t={tokens} v={{ Checked: 'True' }} toggle="Checked" /></BoardCell>
+            <BoardCell label="Radio" tokens={tokens}><Live c="Radio" t={tokens} v={{ Checked: 'True' }} toggle="Checked" /></BoardCell>
+            <BoardCell label="Switch" tokens={tokens}><Live c="Toggle" t={tokens} v={{ On: 'True' }} toggle="On" /></BoardCell>
+            <BoardCell label="Slider" tokens={tokens}><Live c="Slider" t={tokens} v={{}} /></BoardCell>
+          </div>
         </div>
       </BoardSection>
 
-      <BoardSection title="Indicators" tokens={tokens}>
-        <div className="flex flex-col gap-4">
+      <BoardSection title="Indicators" tokens={tokens} divided={section++ > 0}>
+        <div className="flex flex-col gap-3.5">
           {badgeColors.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
               {badgeColors.map((color) => (
@@ -566,43 +617,49 @@ function BasicsBoard({ tokens, icons }: { tokens: PreviewTokens; icons: IconOpts
               ))}
             </div>
           )}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
             {statuses.map((status) => <Live key={status} c="StatusBadge" t={tokens} v={{ Status: status }} />)}
             <Live c="Chip" t={tokens} v={{ Selected: 'True' }} />
           </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
             {avatarSizes.map((size) => <Live key={size} c="Avatar" t={tokens} v={{ Size: size }} />)}
           </div>
-          {/* Its own line — Progress is a full-width bar, so wrapping it in
-              beside chips left a one-item row of dead space either way. */}
           <Live c="Progress" t={tokens} v={{}} />
         </div>
       </BoardSection>
 
-      {alertStatuses.length > 0 && (
-        <BoardSection title="Feedback" note="Status" tokens={tokens}>
-          <div className="flex flex-wrap items-start gap-3">
-            {alertStatuses.map((status) => (
-              <Live key={status} c="InlineAlert" t={tokens} v={{ Status: status }} />
-            ))}
+      {(alertStatuses.length > 0 || toastStatuses.length > 0) && (
+        <BoardSection title="Feedback" note="Status" tokens={tokens} divided={section++ > 0}>
+          <div className="flex flex-col gap-3.5">
+            {alertStatuses.length > 0 && (
+              <div className="flex flex-wrap items-start gap-3">
+                {alertStatuses.map((status) => (
+                  <Live key={status} c="InlineAlert" t={tokens} v={{ Status: status }} />
+                ))}
+              </div>
+            )}
+            {toastStatuses.length > 0 && (
+              <div className="flex flex-wrap items-start gap-3">
+                {toastStatuses.map((status) => (
+                  <Live key={status} c="Toast" t={tokens} v={{ Status: status }} />
+                ))}
+              </div>
+            )}
           </div>
         </BoardSection>
       )}
-    </div>
+    </BoardSurface>
   )
 }
 
 /** Rail row labels come from the catalogue, so a renamed component renames its
- *  own filter — nothing here restates a label. `All` leads: the summary board
- *  plus every variant row, which is what you look at first.
- *
- *  There used to be a `Basics` row above it that rendered the board ALONE, and
- *  `All` was "the same board, plus the rows". The two read as near-duplicates —
- *  clicking Basics after All barely changed the screen — so Basics was dropped.
- *  `All` still shows the board first (it's the summary), then the detail rows. */
+ *  own filter — nothing here restates a label. `All` is the kit cover only
+ *  (one board, no repeated rows underneath). `Actions` is the Style × Color
+ *  matrix — not a second "Button" row. The other keys zoom one SHOWCASE axis. */
 function showcaseRailRows(): { key: string; label: string }[] {
   return [
     { key: 'all', label: 'All' },
+    { key: ACTIONS_KEY, label: 'Actions' },
     ...SHOWCASE.map((row) => ({
       key: row.key,
       label: COMPONENTS.find((component) => component.key === row.key)?.label ?? row.key,
@@ -714,12 +771,15 @@ function ComponentVariantsView({
   // The system's OWN library, so a Button here repaints when Icons changes —
   // the same rule the Color collage and the artefacts follow.
   const icons = { prefix: tokens.iconPrefix ?? 'phosphor', leading: true, trailing: false }
-  // `all` shows the summary board AND every variant row under it; a component
-  // key shows just that row (no board). There is no board-only mode — see
-  // `showcaseRailRows` for why `Basics` was removed.
+  // `all` is the kit cover alone. Repeating SHOWCASE rows under it restated
+  // Badge / Avatar / Input / alerts the board already showed, and Button
+  // twice (Actions + a Style strip). A catalogue key zooms one axis; Actions
+  // zooms the matrix.
   const showBoard = active === 'all'
+  const showActions = active === ACTIONS_KEY
+  const buttonDef = COMPONENTS.find((component) => component.key === 'Button')
   const rows = SHOWCASE
-    .filter((row) => active === 'all' || row.key === active)
+    .filter((row) => !showBoard && !showActions && row.key === active)
     .map((row) => {
       const def = COMPONENTS.find((component) => component.key === row.key)
       const values = def?.axes.find((axis) => axis.name === row.axis)?.values ?? []
@@ -731,60 +791,49 @@ function ComponentVariantsView({
     <PhosphorWeightProvider weight={tokens.iconWeight}>
     <div className="@container flex-1 min-w-0 min-h-0 overflow-y-auto px-5 py-5 @min-[820px]:px-7 @min-[820px]:py-6">
       <div className="mx-auto max-w-[1120px]">
-        <div className="mb-6">
-          <div className="min-w-0">
-            <h2 className="text-title font-semibold text-fg">Component variants</h2>
-            <p className="mt-1 text-body text-fg-muted">
-              A sample of what this theme builds. Every variant below is the one the Figma plugin ships.
-            </p>
-          </div>
-        </div>
-
         {showBoard && (
-          <div className="mb-8">
-            <BasicsBoard tokens={tokens} icons={icons} />
-          </div>
+          <BasicsBoard
+            tokens={tokens}
+            icons={icons}
+            onOpenActions={buttonDef ? () => onOpenComponent(buttonDef) : undefined}
+          />
         )}
 
-        <div className="flex flex-col gap-6">
-          {rows.map(({ key, axis, base, icons: withIcons, def, values }) => {
-            const shown = values.slice(0, SHOWCASE_LIMIT)
-            const hidden = values.length - shown.length
-            return (
-              <section key={key} className="min-w-0 flex flex-col gap-2.5">
-                <div className="flex items-baseline justify-between gap-3 px-0.5">
-                  <button
-                    type="button"
-                    onClick={() => def && onOpenComponent(def)}
-                    className="min-w-0 truncate text-body font-semibold text-fg hover:text-accent-ui focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50 rounded transition-colors"
-                  >
-                    {def?.label ?? key}
-                  </button>
-                  <span className="flex-shrink-0 text-mini uppercase tracking-widest text-fg-faint">
-                    {axis}{hidden > 0 ? ` · +${hidden} more` : ''}
-                  </span>
-                </div>
-                {/* Painted on the SYSTEM's own surface, not the chrome's, so
-                    brand-on-surface contrast reads the way it ships. */}
-                <div
-                  className="flex flex-wrap items-center gap-x-3 gap-y-3 p-4"
-                  style={{
-                    background: tokens.surface,
-                    border: `1px solid ${tokens.borderDefault || tokens.border || '#eaecf0'}`,
-                    borderRadius: 14,
-                  }}
-                >
+        {showActions && (
+          <BoardSurface tokens={tokens}>
+            <BoardSection
+              title="Actions"
+              note="Style × Color"
+              tokens={tokens}
+              onTitleClick={buttonDef ? () => onOpenComponent(buttonDef) : undefined}
+            >
+              <ActionsMatrix tokens={tokens} icons={icons} />
+            </BoardSection>
+          </BoardSurface>
+        )}
+
+        {rows.map(({ key, axis, base, icons: withIcons, def, values }) => {
+          const shown = values.slice(0, SHOWCASE_LIMIT)
+          const hidden = values.length - shown.length
+          return (
+            <BoardSurface key={key} tokens={tokens}>
+              <BoardSection
+                title={def?.label ?? key}
+                note={`${axis}${hidden > 0 ? ` · +${hidden} more` : ''}`}
+                tokens={tokens}
+                onTitleClick={def ? () => onOpenComponent(def) : undefined}
+              >
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
                   {shown.map((value) => (
-                    <div key={value} className="flex min-w-0 flex-col items-start gap-1.5">
+                    <BoardCell key={value} label={value} tokens={tokens}>
                       <Live c={key} t={tokens} v={{ ...base, [axis]: value }} icons={withIcons ? icons : undefined} />
-                      <span className="text-micro uppercase tracking-wide" style={{ color: tokens.fgMuted }}>{value}</span>
-                    </div>
+                    </BoardCell>
                   ))}
                 </div>
-              </section>
-            )
-          })}
-        </div>
+              </BoardSection>
+            </BoardSurface>
+          )
+        })}
       </div>
     </div>
     </PhosphorWeightProvider>
@@ -1000,11 +1049,11 @@ export default function ThemePreviewHub({
             <button
               type="button"
               onClick={onOpenComponents}
-              aria-label={`Open all ${COMPONENTS.length} components`}
-              title={railCollapsed ? `Open all ${COMPONENTS.length} components` : undefined}
+              aria-label={`Open the catalogue — ${COMPONENTS.length} components`}
+              title={railCollapsed ? `Catalogue · ${COMPONENTS.length}` : undefined}
               className={`flex h-8 w-full items-center justify-center rounded-lg border border-line bg-surface text-caption font-medium text-fg-muted transition-colors hover:border-line-strong hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ui/50 ${railCollapsed ? 'px-1' : 'px-2.5'}`}
             >
-              {railCollapsed ? 'All' : <>All {COMPONENTS.length} components →</>}
+              {railCollapsed ? String(COMPONENTS.length) : <>Catalogue · {COMPONENTS.length} →</>}
             </button>
           }
         />
