@@ -610,9 +610,14 @@ export function generateTokenJSON(
     // accent's. Additive under a new key, exactly like `gradientsDark` and
     // `shadowsDark` before it: `gradients`/`gradientsDark` stay byte-identical
     // (they are still the GLOBAL accent's resolution, which is what the
-    // built-in light/dark themes give), so an older consumer — including the
-    // Figma plugin, which ignores gradients entirely today — is unaffected and
-    // no `schemaVersion` bump is needed. Complete for every shipped theme
+    // built-in light/dark themes give), so an older consumer is unaffected and
+    // no `schemaVersion` bump is needed. The Figma plugin DOES consume
+    // gradients — it ships `Gradient/<slug>` + `(Dark)` paint styles, and it
+    // reads THIS key first (`previewGradients`), because the root maps go
+    // stale the moment a theme is minted from another brand family: measured
+    // on a shipped green system, root `gradients` was still the default violet
+    // and painted four hexes that exist in no `colors.primitive` entry.
+    // Complete for every shipped theme
     // (`themeNames` = My themes, or light/dark when the library is empty).
     gradientsByTheme: exportGradientsByTheme,
     gradientAssignments: (() => {

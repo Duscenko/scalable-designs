@@ -48,6 +48,27 @@ interface FigmaSyncViewProps {
 }
 
 /** Theme radios, the sync URL field, and Sync now — one height, one radius. */
+/** Whether the ID currently resolves to a published payload. Deliberately a
+ *  dot + one word, next to the label rather than in the field: it annotates the
+ *  ID, and the field itself is what gets copied. `unknown` renders nothing —
+ *  a probe that could not run must not claim either answer. */
+function PublishStateBadge({ state }: { state: 'unknown' | 'live' | 'missing' }) {
+  const { t } = useI18n()
+  if (state === 'unknown') return null
+  const live = state === 'live'
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-mini font-semibold uppercase tracking-[0.12em] ${live ? 'text-status-success' : 'text-status-warning'}`}
+      title={live
+        ? t('The plugin can fetch this ID right now.')
+        : t('Nothing published under this ID yet — the plugin would answer 404.')}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${live ? 'bg-status-success-solid' : 'bg-status-warning-solid'}`} />
+      {live ? t('Live') : t('Not published')}
+    </span>
+  )
+}
+
 const SYNC_CONTROL = 'h-10 rounded-lg'
 /** Chrome-page ink, not `--accent-ui`. Accent here tracks the previewed
  *  theme, so a gold Core row would paint the URL and the selected radio
@@ -246,6 +267,18 @@ export default function FigmaSyncView({
   )
   const cannotSync = syncThemes.length === 0
   const [isDeployed] = useState(isLiveEnvironment)
+  // Mint the stable id the moment this screen opens — this IS the screen where
+  // someone sets up the connection, so it is the honest place for it, and the
+  // alternative (minting inside `makeDesignDefaults`) would burn an identity on
+  // every reset and every module load. Idempotent, so a re-render is free.
+  //
+  // NOT gated on `isDeployed`: minting touches no network, and a dev build that
+  // showed a stale name-slug in a field labelled "ID to plugin" would be
+  // teaching the wrong thing. The PROBE below IS gated, for the opposite
+  // reason — `vite dev` answers any unknown path with index.html and HTTP 200,
+  // so an unguarded probe there would report a system as Live that isn't.
+  const ensurePublishId = store.ensurePublishId
+  useEffect(() => { ensurePublishId() }, [ensurePublishId])
   const pluginSlug = syncProjectId(fileName)
   const syncUrl = buildSyncUrl(fileName)
   const pageUrl = section
@@ -258,6 +291,36 @@ export default function FigmaSyncView({
   const fileHintId = useId()
   const fileNameRef = useRef<HTMLInputElement>(null)
   const [copied, setCopied] = useState<'sync' | 'page' | null>(null)
+  // ── Does this ID actually serve anything? ─────────────────────────────────
+  // The screen used to hand out a copyable key with no idea whether a blob
+  // existed behind it, and a key that has never been published answers 404 —
+  // which is exactly what the plugin reported, as a bare "HTTP 404" that read
+  // like an outage. One GET settles it, and it is the same request the plugin
+  // will make, so it cannot disagree.
+  //
+  // Keyed by the id it answered FOR, and read back as derived state: a result
+  // for a previous id (after "New ID", or a slower response overtaking a
+  // faster one) can then never be shown against the current one.
+  const [probe, setProbe] = useState<{ key: string; ok: boolean } | null>(null)
+  useEffect(() => {
+    if (!isDeployed || !pluginSlug) return
+    let cancelled = false
+    fetch(`/api/tokens?project=${encodeURIComponent(pluginSlug)}`, { cache: 'no-store' })
+      .then((res) => { if (!cancelled) setProbe({ key: pluginSlug, ok: res.ok }) })
+      // A network failure is not "unpublished" — leave it unknown rather than
+      // telling someone to re-publish something that is already there.
+      .catch(() => { if (!cancelled) setProbe(null) })
+    return () => { cancelled = true }
+  }, [pluginSlug, isDeployed, publishState])
+  const publishedState: 'unknown' | 'live' | 'missing' =
+    probe && probe.key === pluginSlug ? (probe.ok ? 'live' : 'missing') : 'unknown'
+  // Two clicks, because it disconnects every Figma file on the old ID.
+  const [regenArmed, setRegenArmed] = useState(false)
+  useEffect(() => {
+    if (!regenArmed) return
+    const timer = setTimeout(() => setRegenArmed(false), 4000)
+    return () => clearTimeout(timer)
+  }, [regenArmed])
   // Parent flips `done` back to `idle` after 1.8s, and localhost never
   // publishes at all — the plugin handoff has to ride this click, not that
   // ephemeral state.
@@ -272,6 +335,32 @@ export default function FigmaSyncView({
     navigator.clipboard.writeText(value)
     setCopied(kind)
     setTimeout(() => setCopied(null), 2000)
+  }
+
+  /** The ONE primary action: publish, then put the ID on the clipboard.
+   *
+   *  It used to be "Sync now", and the payoff of that button was a POST to a
+   *  server — nothing the user could see. Reported as clicking it and "no ve
+   *  nada". Publishing is a MEANS; the end is having the ID in hand to paste
+   *  in Figma, so the button is named and shaped after the end.
+   *
+   *  It still publishes, and that half is not optional: hand out an ID with no
+   *  blob behind it and the plugin's first poll answers 404 — the exact failure
+   *  this ID exists to remove. `publishedState !== 'live'` covers both "never
+   *  published" and "the probe could not answer", so a copy is never made on a
+   *  guess. */
+  function copyPluginId() {
+    if (publishedState !== 'live' && !cannotSync && publishState !== 'publishing') requestSync()
+    else setHandoff(true)
+    copyUrl('sync', pluginSlug)
+  }
+
+  function handleRegenerate() {
+    if (!regenArmed) { setRegenArmed(true); return }
+    setRegenArmed(false)
+    store.regeneratePublishId()
+    // No optimistic 'missing': the effect re-probes on the new id, and until it
+    // answers the badge is honestly `unknown`.
   }
 
   const pluginUpdateAvailable = pluginBuildSeen != null && pluginBuildSeen !== PLUGIN_BUILD
@@ -424,57 +513,82 @@ export default function FigmaSyncView({
           <div className="flex items-center gap-1">
             <p id={pluginLabelId} className="text-mini font-semibold uppercase tracking-[0.12em] text-fg-faint">{t('ID to plugin')}</p>
             <SyncUrlInfo deployed={isDeployed} />
+            <PublishStateBadge state={publishedState} />
+            <button
+              type="button"
+              onClick={handleRegenerate}
+              title={t('Generate a new ID. Every Figma file on the current ID stops receiving updates.')}
+              className={`ml-auto rounded-md px-1.5 py-0.5 text-mini font-semibold uppercase tracking-[0.12em] transition-colors ${regenArmed ? 'bg-status-danger/12 text-status-danger' : 'text-fg-faint hover:bg-fg/8 hover:text-fg'} ${SYNC_FOCUS}`}
+            >
+              {regenArmed ? t('Click again to confirm') : t('New ID')}
+            </button>
           </div>
           <div className="flex items-stretch gap-2">
             <div className={`flex min-w-0 flex-1 items-center gap-2 border border-line bg-app px-3 ${SYNC_CONTROL}`}>
+              {/* The ID, not the URL. The plugin's connection field takes
+                  either — it normalizes whatever is pasted — but the ID is the
+                  thing that is stable and short enough to read back off a
+                  screen, and showing the URL is what taught everyone to treat
+                  the last path segment as a name they could edit. */}
+              <code
+                title={syncUrl}
+                aria-labelledby={pluginLabelId}
+                className="min-w-0 flex-1 truncate font-mono text-caption tracking-[0.04em] text-fg"
+              >
+                {pluginSlug}
+              </code>
               <a
                 href={syncUrl}
                 target="_blank"
                 rel="noreferrer"
+                aria-label={t('Open the raw tokens.json')}
                 title={syncUrl}
-                aria-labelledby={pluginLabelId}
-                className={`min-w-0 flex-1 truncate font-mono text-caption text-fg underline-offset-2 hover:underline ${SYNC_FOCUS}`}
-              >
-                {syncUrl}
-              </a>
-              <button
-                type="button"
-                onClick={() => copyUrl('sync', syncUrl)}
-                aria-label={copied === 'sync' ? t('ID to plugin copied') : t('Copy ID to plugin')}
-                title={copied === 'sync' ? t('Copied') : t('Copy')}
                 className={`grid h-6 w-6 flex-shrink-0 place-items-center rounded-md text-fg-faint transition-colors hover:bg-fg/8 hover:text-fg ${SYNC_FOCUS}`}
               >
-                {copied === 'sync' ? (
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="text-status-success" aria-hidden>
-                    <path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ) : (
-                  <CopyGlyph size={13} />
-                )}
-              </button>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <path d="M6.5 3.5H3.5v9h9V9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M9.5 3.5h3v3M12.5 3.5 7.5 8.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </a>
             </div>
             <button
               type="button"
-              onClick={requestSync}
+              onClick={copyPluginId}
               disabled={publishState === 'publishing' || cannotSync}
-              title={cannotSync ? t('Add a theme to My themes first') : undefined}
               className={`inline-flex min-w-[112px] flex-shrink-0 items-center justify-center gap-2 bg-fg px-3 text-caption font-semibold text-app shadow-sm transition-[opacity,transform] hover:opacity-90 active:scale-[0.98] disabled:opacity-60 ${cannotSync ? 'disabled:cursor-not-allowed' : 'disabled:cursor-wait'} ${SYNC_CONTROL} ${SYNC_FOCUS}`}
             >
               {publishState === 'publishing' ? (
                 <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 16 16" fill="none" aria-hidden>
                   <path d="M8 2a6 6 0 1 1-5.2 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
-              ) : (
+              ) : copied === 'sync' ? (
                 <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden>
-                  <path d="M13.5 5.5A6 6 0 1 0 14 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                  <path d="M13.5 1.8v3.7H9.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
+              ) : (
+                <CopyGlyph size={14} />
               )}
-              {publishState === 'publishing' ? 'Publishing…' : publishState === 'error' ? 'Retry sync' : 'Sync now'}
+              {publishState === 'publishing'
+                ? t('Publishing…')
+                : publishState === 'error'
+                  ? t('Try again')
+                  : copied === 'sync'
+                    ? t('Copied')
+                    : t('Copy ID')}
             </button>
           </div>
+          {/* A disabled button whose only explanation is a `title` is a dead
+              end — you click, nothing happens, and the reason needs a hover you
+              have no cue to attempt. It is what "no ve nada" actually was. */}
+          {cannotSync && (
+            <p className="text-caption leading-relaxed text-status-warning">
+              {t('Add a System style to My themes first — there is nothing to publish yet.')}
+            </p>
+          )}
           <p id={fileHintId} className="text-caption leading-relaxed text-fg-faint">
-            {t('The plugin names the Figma file this. ID to plugin ends with this name.')}
+            {publishedState === 'missing'
+              ? t('Nothing published under this ID yet — press Sync now, then paste the ID in the plugin.')
+              : t('Paste this ID in the plugin. It never changes when you rename a theme or the file.')}
           </p>
           </div>
         </div>
@@ -531,6 +645,13 @@ export default function FigmaSyncView({
             <span className="text-fg-faint">{publishError || "Couldn't publish your tokens. Retry sync, or use the plugin's Import tab to paste them manually."}</span>
           </div>
         )}
+        {/* The payoff, and deliberately NOT a toast. The next step happens in
+            another application — the user has to leave this window, open Figma,
+            find the plugin and paste. An instruction you act on somewhere else
+            must not expire after two seconds, so this card stays until the
+            state that produced it changes. It is also why the old copy ("This
+            only published the URL") is gone: that described the mechanism,
+            which is precisely the half the user cannot see and does not need. */}
         {handoff && publishState !== 'publishing' && publishState !== 'error' && (
           <div
             role="status"
@@ -539,11 +660,11 @@ export default function FigmaSyncView({
           >
             <span className="mt-0.5 text-status-success" aria-hidden>✓</span>
             <div className="min-w-0">
-              <p className="text-caption font-semibold text-fg">{t('Go to the plugin')}</p>
+              <p className="text-caption font-semibold text-fg">
+                {t('ID copied. Now paste it in the plugin.')}
+              </p>
               <p className="mt-0.5 text-caption leading-relaxed text-fg-muted">
-                {publishState === 'done' || isDeployed
-                  ? t('Open it and click Update now. This only published the URL.')
-                  : t('Open it and click Update now.')}
+                {t('In Figma: open the Escala plugin, paste into ID to plugin, then press Start sync.')}
               </p>
             </div>
           </div>

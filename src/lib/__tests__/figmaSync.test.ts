@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { publishOrigin, syncPath, syncProjectId } from '../figmaSync'
+import { legacyProjectId, publishOrigin, syncPath, syncProjectId } from '../figmaSync'
+import { useDesignStore } from '../../store/useDesignStore'
+import { generatePublishId } from '../publishId'
 import { DEFAULT_PUBLISH_ORIGIN } from '../agentInstall'
 
 /** The suite runs in `environment: 'node'`, so there is no `window` unless a
@@ -11,7 +13,10 @@ function withOrigin(origin: string | null) {
   else g.window = { location: { origin } }
 }
 
-afterEach(() => withOrigin(null))
+afterEach(() => {
+  withOrigin(null)
+  useDesignStore.setState({ publishId: '' })
+})
 
 describe('publishOrigin', () => {
   // Regression: served from vite dev/preview this returned the localhost
@@ -54,14 +59,47 @@ describe('publishOrigin', () => {
 })
 
 describe('figma sync id', () => {
-  it('keys /api/tokens on the file name, not a second project id', () => {
+  // The whole point of `publishId`: the key stops moving when a LABEL moves.
+  // Before this, `syncProjectId` was `slugify(<file name>)` and the file name
+  // defaults to the first theme's display label — so renaming a theme silently
+  // repointed the publish target and every connected plugin went stale or 404'd.
+  it('uses the stable publish id and ignores every label once one exists', () => {
+    const id = generatePublishId()
+    useDesignStore.setState({ publishId: id, projectName: 'Escala' })
+    expect(syncProjectId()).toBe(id)
+    expect(syncProjectId('theme')).toBe(id)
+    expect(syncProjectId('a completely different file name')).toBe(id)
+    expect(syncPath('theme')).toBe(`/api/tokens?project=${id}`)
+    // A rename — of the project or of the file — must not move the key.
+    useDesignStore.setState({ projectName: 'Renamed Twice' })
+    expect(syncProjectId('renamed again')).toBe(id)
+  })
+
+  it('falls back to the legacy name slug until an id is minted', () => {
+    useDesignStore.setState({ publishId: '' })
     expect(syncProjectId('theme')).toBe('theme')
     expect(syncProjectId('Nature / Organic')).toBe('nature--organic')
     expect(syncPath('theme')).toBe('/api/tokens?project=theme')
   })
 
   it('falls back to the editor project when the file name is empty', () => {
+    useDesignStore.setState({ publishId: '' })
     expect(syncProjectId('')).toBe(syncProjectId())
     expect(syncProjectId('   ')).toBe(syncProjectId())
+  })
+
+  it('still exposes the legacy key, so an already-connected file keeps updating', () => {
+    // `publishTokens` writes this one too, but only while the browser holds
+    // its claim — see the note there. It must stay derivable after the id
+    // takes over, or that second write has no address.
+    useDesignStore.setState({ publishId: generatePublishId(), projectName: 'Escala' })
+    expect(legacyProjectId('theme')).toBe('theme')
+    expect(legacyProjectId()).toBe('escala')
+    expect(legacyProjectId(undefined, 'My System')).toBe('my-system')
+  })
+
+  it('ignores a malformed stored id rather than publishing to a broken key', () => {
+    useDesignStore.setState({ publishId: 'esc_NOT-A-REAL', projectName: 'Escala' })
+    expect(syncProjectId()).toBe('escala')
   })
 })

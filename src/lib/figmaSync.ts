@@ -4,6 +4,7 @@ import { generateTokenJSON, setActiveThemeHint, type GenerateTokenOptions } from
 import { DEFAULT_PUBLISH_ORIGIN, mcpOrigin } from './agentInstall'
 import { claimStorageKey } from './publishTrust'
 import { slugify } from './utils'
+import { isPublishId } from './publishId'
 
 /** Ephemeral UI feedback for an explicit user-initiated Figma publish. This
  * deliberately does not live in the persisted design-system store: a spinner
@@ -22,14 +23,35 @@ export function isLiveEnvironment(): boolean {
 }
 
 /**
- * Blob key for `/api/tokens?project=<id>`.
- * A Figma file name wins — ID to plugin and the POST must use the same slug.
- * Without one, the editor project name is the fallback (MCP, GitHub, Docs).
+ * Blob key for `/api/tokens?project=<id>` — the system's STABLE publish id
+ * whenever it has one.
+ *
+ * This used to be `slugify(<Figma file name>)`, falling back to the project
+ * name, and that was the bug: the file name defaults to the FIRST THEME'S
+ * DISPLAY LABEL, so renaming a theme moved the publish target to a key nobody
+ * had published to. Measured live — the `green` slug served a system whose
+ * themes were `red::*`, `escala` served the green one, and a freshly-copied
+ * URL answered 404. The identity of a design system cannot be a label the
+ * designer is expected to keep editing.
+ *
+ * `fileName` is still honoured, but ONLY as the legacy fallback for a system
+ * that has not minted an id yet — so nothing that was already publishing
+ * changes key until it publishes once more (see `publishTokens`, which keeps
+ * writing the legacy key alongside the new one).
  */
 export function syncProjectId(fileName?: string): string {
+  const { publishId, projectName } = useDesignStore.getState()
+  if (isPublishId(publishId)) return publishId
+  return legacyProjectId(fileName, projectName)
+}
+
+/** The pre-id key: what a system published under before `publishId` existed.
+ *  Kept so an already-connected Figma file keeps receiving updates. */
+export function legacyProjectId(fileName?: string, projectName?: string): string {
   const fromFile = fileName?.trim() ? slugify(fileName.trim()) : ''
   if (fromFile) return fromFile
-  return slugify(useDesignStore.getState().projectName) || 'design-system'
+  const name = projectName ?? useDesignStore.getState().projectName
+  return slugify(name) || 'design-system'
 }
 
 /**
@@ -125,33 +147,50 @@ export async function publishTokens(
 ): Promise<PublishResult> {
   const opts = publishOptions(themeOrOpts, section)
   if (opts.theme) setActiveThemeHint(opts.theme)
-  const slug = syncProjectId(opts.project ?? undefined)
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const claim = getStoredClaim(slug)
-  if (claim) headers.Authorization = `Bearer ${claim}`
+  // Mint on the FIRST publish, never earlier: `makeDesignDefaults()` runs at
+  // module load and on every reset, and minting there would burn a fresh
+  // identity on a browser that has published nothing.
+  const slug = useDesignStore.getState().ensurePublishId()
+  const body = JSON.stringify(generateTokenJSON(undefined, {
+    ...(opts.theme ? { theme: opts.theme } : {}),
+    ...(opts.themes?.length ? { themes: opts.themes } : {}),
+    ...(opts.modes?.length ? { modes: opts.modes } : {}),
+    ...(opts.project?.trim() ? { project: opts.project.trim() } : {}),
+    ...(opts.section ? { section: opts.section } : {}),
+  }))
 
-  let res: Response
-  try {
-    res = await fetch(syncPath(opts.project ?? undefined), {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(generateTokenJSON(undefined, {
-        ...(opts.theme ? { theme: opts.theme } : {}),
-        ...(opts.themes?.length ? { themes: opts.themes } : {}),
-        ...(opts.modes?.length ? { modes: opts.modes } : {}),
-        ...(opts.project?.trim() ? { project: opts.project.trim() } : {}),
-        ...(opts.section ? { section: opts.section } : {}),
-      })),
-    })
-  } catch {
-    return { ok: false, reason: 'network' }
+  async function postTo(key: string): Promise<Response | null> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const claim = getStoredClaim(key)
+    if (claim) headers.Authorization = `Bearer ${claim}`
+    try {
+      return await fetch(`/api/tokens?project=${encodeURIComponent(key)}`, {
+        method: 'POST', headers, body,
+      })
+    } catch {
+      return null
+    }
   }
 
+  const res = await postTo(slug)
+  if (!res) return { ok: false, reason: 'network' }
+
   if (res.ok) {
-    const body = (await res.json().catch(() => null)) as { claim?: unknown } | null
-    if (typeof body?.claim === 'string' && body.claim) {
-      setStoredClaim(slug, body.claim)
-    }
+    const parsed = (await res.json().catch(() => null)) as { claim?: unknown } | null
+    if (typeof parsed?.claim === 'string' && parsed.claim) setStoredClaim(slug, parsed.claim)
+    // -- Keep an already-connected Figma file alive -------------------------
+    // Before `publishId`, the key was the file-name/project slug. Every plugin
+    // installed against that key is still polling it, and moving the publish
+    // target without telling it would not 404 — the old blob still answers —
+    // it would just serve yesterday's system forever. Silent staleness is a
+    // worse failure than a visible error, so the legacy key is written too.
+    //
+    // Narrow on purpose: ONLY a key this browser has actually claimed. Without
+    // that guard the first publish after upgrading would mint a blob at
+    // whatever the project happens to be called, for every user, forever.
+    // Best-effort — its failure is not the publish's failure.
+    const legacy = legacyProjectId(opts.project ?? undefined)
+    if (legacy && legacy !== slug && getStoredClaim(legacy)) await postTo(legacy)
     useDesignStore.getState().setFigmaLastPublishAt(new Date().toISOString())
     return { ok: true }
   }
@@ -174,7 +213,11 @@ export function describePublishFailure(
 ): string {
   switch (reason) {
     case 'claim-lost':
-      return `This file name ("${syncProjectId(fileName)}") is already published from another browser or device. Rename the file to publish under a new URL, or reconnect from the browser that published it first.`
+      // The advice used to be "rename the file", which worked only because the
+      // key was DERIVED from that name. It no longer is — a rename changes
+      // nothing now — so the escape hatch is the explicit one:
+      // `regeneratePublishId()`, surfaced in Figma sync as "New ID".
+      return `This ID (${syncProjectId(fileName)}) was first published from another browser or device, and only that one can update it. Generate a new ID to publish this copy separately, or sync from the browser that published it first.`
     case 'network':
       return 'Could not reach the server — check your connection and try again.'
     case 'server':

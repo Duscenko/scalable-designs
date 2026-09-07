@@ -38,6 +38,7 @@ import {
   LEGACY_MOSS_GLOW_STOPS,
 } from '../lib/gradients'
 import { slugify } from '../lib/utils'
+import { generatePublishId, isPublishId } from '../lib/publishId'
 // Type-only: semanticArchitectures imports semanticRoles (which imports this
 // store's constants), so a value import here would create a runtime cycle.
 import type { SemanticArchitecture } from '../lib/semanticArchitectures'
@@ -303,6 +304,24 @@ export const PADDING_DEFAULT: Record<string, string> = { ...PADDING_STANDARD }
 export interface DesignSnapshot {
   projectName: string
   projectDescription: string
+  /** The system's STABLE publish identity — the `?project=` key `/api/tokens`
+   *  is written to and the Figma plugin reads from. See `lib/publishId.ts` for
+   *  why it exists: the key used to be `slugify(<Figma file name>)`, which
+   *  defaults to the first theme's LABEL, so renaming a theme silently moved
+   *  the publish target and left every connected plugin on a stale (or absent)
+   *  blob.
+   *
+   *  `''` means "not minted yet" — every pre-v72 system, and every system
+   *  reset to defaults. It is minted LAZILY, on the first publish
+   *  (`ensurePublishId`), rather than in `makeDesignDefaults()`: that factory
+   *  runs on every reset and at module load, and minting there would burn a
+   *  fresh identity on a browser that has never published anything.
+   *
+   *  In the SNAPSHOT, not a top-level preference: it identifies the system, so
+   *  it has to travel with a saved kit and with `.escala/system.json`. The
+   *  consequence — two people loading the same kit share an id and the second
+   *  one loses the publish claim — is what `regeneratePublishId()` is for. */
+  publishId: string
   colorAlgorithm: ColorAlgorithm
   contrastShift: number
   colorNaming: ColorNaming
@@ -461,6 +480,10 @@ export function makeDesignDefaults(): DesignSnapshot {
   return {
     projectName: 'Escala',
     projectDescription: '',
+    // Lazily minted — see the field's own note. A reset genuinely IS a new
+    // system, so clearing it here (rather than carrying the old id over) is
+    // the honest behaviour: the next publish gets its own identity.
+    publishId: '',
     colorAlgorithm: 'radix',
     contrastShift: 0,
     // Radix's own 1-12 numbering — every ramp is already stored this way
@@ -647,7 +670,19 @@ function buildSavedSystemEntry(
 interface DesignStore {
   // Home / onboarding
   projectName: string
+  /** Mirrors `DesignSnapshot.publishId` — the stable `/api/tokens` key. */
+  publishId: string
   setProjectName: (name: string) => void
+  /** The system's publish id, minting one on first call. Returns it, so the
+   *  publish path can read and persist in a single step. Idempotent. */
+  ensurePublishId: () => string
+  /** Mint a NEW identity, abandoning the old one. The escape hatch for the one
+   *  case a stable id makes worse: a kit loaded in a second browser carries
+   *  the first browser's id, and `/api/tokens` will refuse its publish (401,
+   *  `claim-lost`) because the claim lives with whoever published first.
+   *  Deliberately explicit — it disconnects every Figma file pointing at the
+   *  old id, so it can never be a side effect of something else. */
+  regeneratePublishId: () => string
   projectDescription: string
   setProjectDescription: (d: string) => void
   // True once the user has confirmed the "New Design System" card on Home.
@@ -949,12 +984,27 @@ interface DesignStore {
 
 export const useDesignStore = create<DesignStore>()(
   persist(
-    (set) => ({
+    // `get` is used by `ensurePublishId` — it must read the CURRENT id before
+    // deciding to mint, and a stale closure over the initial state would mint
+    // a second identity on every call.
+    (set, get) => ({
       // All design data comes from the single defaults factory — the same
       // source startNewSystem() resets to.
       ...makeDesignDefaults(),
 
       setProjectName: (name) => set({ projectName: name }),
+      ensurePublishId: () => {
+        const current = get().publishId
+        if (isPublishId(current)) return current
+        const minted = generatePublishId()
+        set({ publishId: minted })
+        return minted
+      },
+      regeneratePublishId: () => {
+        const minted = generatePublishId()
+        set({ publishId: minted })
+        return minted
+      },
       setProjectDescription: (d) => set({ projectDescription: d }),
       // The system always exists with defaults — the workspace opens on Color, no
       // name-first onboarding gate. (Kept in the store for the multi-system flow.)
@@ -1565,7 +1615,7 @@ export const useDesignStore = create<DesignStore>()(
     }),
     {
       name: 'scalable-designs-store',
-      version: 71,
+      version: 72,
       migrate: (persisted: any, version: number) => {
         if (persisted) {
           // v1→v2: remove styleDirection, rename selectedAtoms → selectedComponents
@@ -2739,6 +2789,27 @@ export const useDesignStore = create<DesignStore>()(
         linkMossGlow(persisted)
         if (Array.isArray(persisted.savedSystems)) {
           for (const sys of persisted.savedSystems) linkMossGlow(sys?.snapshot)
+        }
+        // v71->v72: `publishId` — the system's stable `/api/tokens` key, see
+        // `lib/publishId.ts`. Seeded EMPTY, not minted here, and that is the
+        // whole decision: minting during a migration would move every existing
+        // system's publish target on the next sync, in the background, with no
+        // one having asked — and every Figma file already connected to the old
+        // name-derived slug would quietly stop receiving updates. Empty means
+        // "still on the legacy key"; the id is minted on the next publish, and
+        // `publishTokens` keeps writing the legacy key alongside it for as long
+        // as this browser holds that slug's claim, so nothing goes stale.
+        //
+        // Seeded on saved snapshots too: `loadSystem` spreads a snapshot over
+        // state, and a missing key there would set `publishId` to `undefined`,
+        // which `isPublishId` rejects but every `?? ''` fallback would not.
+        const seedPublishId = (state: any) => {
+          if (!state || typeof state !== 'object') return
+          if (typeof state.publishId !== 'string') state.publishId = ''
+        }
+        seedPublishId(persisted)
+        if (Array.isArray(persisted.savedSystems)) {
+          for (const sys of persisted.savedSystems) seedPublishId(sys?.snapshot)
         }
         return persisted
       },
